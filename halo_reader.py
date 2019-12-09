@@ -33,7 +33,7 @@ class SatParam(object):
     a_bins_plt = 2*a_bins
 
     # other general parameters
-    n_iter = 10000
+    n_iter = 5000
     star_mass = [1e5, 1e10]
     star_number = 10.0
     star_density = 1e3
