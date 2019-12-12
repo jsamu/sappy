@@ -312,13 +312,13 @@ def iso_rand_angle_width(
         iso_coords = iso_hal['iso_coords']
         n_sub_sample = n_iter
     all_snap_coords = np.reshape(iso_coords, (n_sub_sample*n_sat, 3))
-    frac_enclosed_range = np.zeros((len(angle_range), n_iter))
+    frac_enclosed_range = np.zeros((len(angle_range), n_sub_sample))
     nan_array = np.full(frac_enclosed_range.shape, np.nan)
     angle_array = np.zeros(frac_enclosed_range.shape)
     for j,opening_angle in enumerate(angle_range):
-        angle_array[j] = np.full(n_iter, opening_angle)
+        angle_array[j] = np.full(n_sub_sample, opening_angle)
 
-    phi_width_k = np.zeros((n_iter, n_iter))
+    phi_width_k = np.zeros((n_iter, n_sub_sample))
     for k,axes in enumerate(rand_axes):
         snap_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_snap_coords, rotation_tensor=axes)
         tangent_of_openning_angle = snap_prime_coords[:,2]/np.sqrt(snap_prime_coords[:,0]**2 + snap_prime_coords[:,1]**2)
