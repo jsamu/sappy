@@ -310,7 +310,8 @@ def iso_rand_angle_width(
         iso_coords = iso_hal['iso_coords'][0:n_sub_sample]
     else:
         iso_coords = iso_hal['iso_coords']
-    all_snap_coords = np.reshape(iso_coords, (n_iter*n_sat, 3))
+        n_sub_sample = n_iter
+    all_snap_coords = np.reshape(iso_coords, (n_sub_sample*n_sat, 3))
     frac_enclosed_range = np.zeros((len(angle_range), n_iter))
     nan_array = np.full(frac_enclosed_range.shape, np.nan)
     angle_array = np.zeros(frac_enclosed_range.shape)
