@@ -77,7 +77,7 @@ def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000):
 @jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', n_iter=1000, fraction=1.0, 
-    angle_width=0.5, return_ax=False):
+    angle_range=None, return_ax=False):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the angle off of the simulation x-axis that encloses a given
@@ -91,7 +91,7 @@ def rand_angle_width(
         if snap_angles_n.size == 0:
             phi_width_n[n] = np.nan
         else:
-            phi_width_n = optim_open_angle(snap_angles_n, angle_width, fraction, phi_width_n, n)
+            phi_width_n = optim_open_angle(snap_angles_n, angle_range, fraction, phi_width_n, n)
 
     phi_width = np.min(phi_width_n)
     min_index = np.where(phi_width_n == np.min(phi_width_n))[0][0]
