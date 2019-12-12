@@ -135,7 +135,7 @@ def rand_angle_width_old(
     else:
         return phi_width
 
-@jit(nopython=True)
+@jit
 def optim_open_angle(snap_angles, angle_width, threshold_fraction, phi_width, i):
     opening_angle = 45.0
     angle_mask = np.abs(snap_angles) <= opening_angle
