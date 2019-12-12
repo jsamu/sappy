@@ -323,7 +323,7 @@ def iso_rand_angle_width(
         snap_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_snap_coords, rotation_tensor=axes)
         tangent_of_openning_angle = snap_prime_coords[:,2]/np.sqrt(snap_prime_coords[:,0]**2 + snap_prime_coords[:,1]**2)
         snap_angles_k = np.degrees(np.arctan(tangent_of_openning_angle))
-        snap_angles_n = np.reshape(snap_angles_k, (n_iter, n_sat))
+        snap_angles_n = np.reshape(snap_angles_k, (n_sub_sample, n_sat))
         phi_width_k[k] = optim_open_angle(snap_angles_n, angle_range, 
             threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array)
 
