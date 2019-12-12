@@ -135,7 +135,7 @@ def rand_angle_width_old(
     else:
         return phi_width
 
-@jit
+@jit(nopython=True)
 def optim_open_angle(snap_angles, angle_width, threshold_fraction, phi_width, i):
     opening_angle = 45.0
     angle_mask = np.abs(snap_angles) <= opening_angle
@@ -143,17 +143,17 @@ def optim_open_angle(snap_angles, angle_width, threshold_fraction, phi_width, i)
 
     if frac_enclosed < threshold_fraction:
         while frac_enclosed < threshold_fraction:
-            opening_angle += phi_width
+            opening_angle += angle_width
             angle_mask = np.abs(snap_angles) <= opening_angle
             frac_enclosed = np.sum(angle_mask)/snap_angles.size
         phi_width[i] = 2*opening_angle
     else:
         while frac_enclosed > threshold_fraction:
-            opening_angle -= phi_width
+            opening_angle -= angle_width
             angle_mask = np.abs(snap_angles) <= opening_angle
             frac_enclosed = np.sum(angle_mask)/snap_angles.size
         if frac_enclosed < threshold_fraction:
-            opening_angle += phi_width
+            opening_angle += angle_width
         phi_width[i] = 2*opening_angle
 
     return phi_width
@@ -171,7 +171,7 @@ def optim_open_angle_old(snap_angles, angle_range, threshold_fraction, phi_width
             pass
 
     return phi_width
-
+    
 @jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', n_iter=None, r_frac=None, 

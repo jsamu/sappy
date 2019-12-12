@@ -326,7 +326,7 @@ def iso_rand_angle_width(
 
     return phi_width_n
 
-@jit(nopython=True)
+@jit
 def optim_open_angle(
     snap_angles, angle_range, threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array):
     for j,opening_angle in enumerate(angle_range):
