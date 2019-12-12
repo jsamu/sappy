@@ -76,6 +76,36 @@ def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000):
 
 @jit
 def rand_angle_width(
+    hal, hal_mask=None, host_str='host.', n_iter=1000, fraction=1.0, 
+    angle_width=0.5, return_ax=False):
+    '''
+    Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
+    realizations. Finds the angle off of the simulation x-axis that encloses a given
+    fraction of the satellites, and then gets the minimum of this angle across all
+    random realizations for each host halo at each redshift.
+    '''
+    rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, host_str=host_str, n_iter=n_iter)
+    phi_width_n = np.zeros(n_iter)
+
+    for n, snap_angles_n in enumerate(rand_angles):
+        if snap_angles_n.size == 0:
+            phi_width_n[n] = np.nan
+        else:
+            phi_width_n = optim_open_angle(snap_angles_n, angle_width, fraction, phi_width_n, n)
+
+    phi_width = np.min(phi_width_n)
+    min_index = np.where(phi_width_n == np.min(phi_width_n))[0][0]
+
+    # return just the vector normal to the plane
+    min_ax = rand_axes[min_index][2]
+
+    if return_ax is True:
+        return {'angle':phi_width, 'ax':min_ax}
+    else:
+        return phi_width
+
+@jit
+def rand_angle_width_old(
     hal, hal_mask=None, host_str='host.', n_iter=None, fraction=0.68, 
     angle_range=None, return_ax=False):
     '''
@@ -106,7 +136,30 @@ def rand_angle_width(
         return phi_width
 
 @jit(nopython=True)
-def optim_open_angle(snap_angles, angle_range, threshold_fraction, phi_width, i):
+def optim_open_angle(snap_angles, angle_width, threshold_fraction, phi_width, i):
+    opening_angle = 45.0
+    angle_mask = np.abs(snap_angles) <= opening_angle
+    frac_enclosed = np.sum(angle_mask)/snap_angles.size
+
+    if frac_enclosed < threshold_fraction:
+        while frac_enclosed < threshold_fraction:
+            opening_angle += phi_width
+            angle_mask = np.abs(snap_angles) <= opening_angle
+            frac_enclosed = np.sum(angle_mask)/snap_angles.size
+        phi_width[i] = 2*opening_angle
+    else:
+        while frac_enclosed > threshold_fraction:
+            opening_angle -= phi_width
+            angle_mask = np.abs(snap_angles) <= opening_angle
+            frac_enclosed = np.sum(angle_mask)/snap_angles.size
+        if frac_enclosed < threshold_fraction:
+            opening_angle += phi_width
+        phi_width[i] = 2*opening_angle
+
+    return phi_width
+
+@jit(nopython=True)
+def optim_open_angle_old(snap_angles, angle_range, threshold_fraction, phi_width, i):
     for opening_angle in angle_range:
         angle_mask = (snap_angles <= opening_angle) & (snap_angles >= -opening_angle)
         frac_enclosed = np.sum(angle_mask)/snap_angles.size
