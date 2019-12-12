@@ -294,7 +294,7 @@ def iso_rand_angle_width_old(
 @jit
 def iso_rand_angle_width(
     iso_hal, threshold_fraction=1.0, n_iter=None, angle_range=None,
-    angle_width=None):
+    angle_width=None, n_sub_sample=None):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the angle off of the simulation x-axis that encloses a given
@@ -306,7 +306,11 @@ def iso_rand_angle_width(
 
     # variables defined for optimization
     n_sat = len(iso_hal['iso_coords'][0])
-    all_snap_coords = np.reshape(iso_hal['iso_coords'], (n_iter*n_sat, 3))
+    if n_sub_sample is not None:
+        iso_coords = iso_hal['iso_coords'][0:n_sub_sample]
+    else:
+        iso_coords = iso_hal['iso_coords']
+    all_snap_coords = np.reshape(iso_coords, (n_iter*n_sat, 3))
     frac_enclosed_range = np.zeros((len(angle_range), n_iter))
     nan_array = np.full(frac_enclosed_range.shape, np.nan)
     angle_array = np.zeros(frac_enclosed_range.shape)
@@ -329,20 +333,7 @@ def iso_rand_angle_width(
 @jit
 def optim_open_angle(
     snap_angles, angle_range, threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array):
-    for j,opening_angle in enumerate(angle_range):
-        angle_mask = np.abs(snap_angles) <= opening_angle
-        frac_enclosed = np.sum(angle_mask, axis=1)/n_sat
-        frac_enclosed_range[j] = frac_enclosed
-
-    min_encl_angles = np.where(frac_enclosed_range>=threshold_fraction, angle_array, nan_array)
-    phi_width = 2*np.nanmin(min_encl_angles, axis=0)
-
-    return phi_width
-
-@jit
-def optim_open_angle_old(
-    snap_angles, angle_range, threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array):
-    frac_enclosed = np.array([0])
+    #frac_enclosed = np.array([0])
     for j,opening_angle in enumerate(angle_range):
         angle_mask = (snap_angles <= opening_angle) & (snap_angles >= -opening_angle)
         frac_enclosed = np.sum(angle_mask, axis=1)/n_sat

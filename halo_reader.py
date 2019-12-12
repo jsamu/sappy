@@ -28,12 +28,12 @@ class SatParam(object):
     r_bins = np.insert(r_bins, 0, 0)
 
     # angular bins to use for plotting/calculations
-    a_width = 0.5
+    a_width = 5
     a_bins = ut.binning.BinClass([0, 90], width=a_width).maxs
     a_bins_plt = 2*a_bins
 
     # other general parameters
-    n_iter = 5000
+    n_iter = 10000
     star_mass = [1e5, 1e10]
     star_number = 10.0
     star_density = 1e3
