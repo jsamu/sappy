@@ -1,6 +1,8 @@
 import numpy as np
 import os
+import itertools
 import pandas as pd
+from matplotlib import cm
 from matplotlib import pyplot as plt
 from scipy.stats import spearmanr
 from collections import defaultdict
@@ -76,9 +78,115 @@ def plot_probability_vs_time(
         plt.ylabel('prob of greater isotropic planarity')
         #plt.xlim((0,0.1))
 
+def histogram_planar_intervals2(
+    grouped_table_list, y_type_list, threshold_value_list, x_type='time', 
+    exclude_single_snapshot=False, t_bin_width=0.25, 
+    color_list=['C0', 'C1', 'C2', 'k'], 
+    histtype_list = ['bar', 'bar', 'bar', 'step'], legend_title=None):
+
+    fig, ax = plt.subplots(1,1,figsize=(6,5))
+    fig.set_tight_layout(False)
+    fig.subplots_adjust(left=0.14, right=0.98, top=0.98, bottom=0.16)
+    t_hist_list = []
+    t_bin_list = []
+    for grouped_table, y_type, threshold_value in zip(
+        grouped_table_list, y_type_list, threshold_value_list):
+        # finding t_corr intervals, lengths of time that planarity falls
+        # below a set threshold
+        t_corr = {}
+        for i,(host_key,host_group) in enumerate(grouped_table):      
+            below_thresh_indices = np.where(host_group[y_type] < threshold_value)[0]
+
+            times_below_threshold = np.full(len(host_group[y_type]), -1.0)
+            for j in below_thresh_indices:
+                times_below_threshold[j] = host_group[x_type].values[j]
+
+            deltat = []
+            t_below = []
+
+            for n,ti in enumerate(times_below_threshold):
+                # if the time isn't a nan, append it to a new array
+                if ti >= 0.0:
+                    t_below.append(ti)
+                    # if you're at the end of the list, get time interval now
+                    if (n == len(times_below_threshold) - 1) & (len(t_below) > 1):
+                        deltat.append(t_below[0] - t_below[-1])
+                    elif (n == len(times_below_threshold) - 1) & (len(t_below) == 1):
+                        deltat.append(0.0)
+                else:
+                    # if you've only hit -1's thus far, keep going
+                    if np.sum(times_below_threshold[:n+1] < 0) == n+1:
+                        pass
+                    # if you hit a nan after a series of numbers, take the time 
+                    # interval between the previous ti and the earliest consecutive 
+                    # ti that is not a nan and append it to deltat
+                    elif (times_below_threshold[n-1] > 0) & (times_below_threshold[n-2] > 0):
+                        deltat.append(t_below[0] - t_below[-1])
+                        # then reset t_below to an empty list to find new time intervals
+                        t_below = []
+                    elif (times_below_threshold[n-1] > 0) & (times_below_threshold[n-2] < 0):
+                        deltat.append(0.0)
+                        # then reset t_below to an empty list to find new time intervals
+                        t_below = []
+                    else:
+                        pass
+
+            # catch hosts that are always below threshold probability
+            if (len(deltat) == 0) & (len(t_below) == np.sum(~np.isnan(times_below_threshold))):
+                deltat.append(t_below[0] - t_below[-1])
+            
+            deltat = np.array(deltat)
+            
+            # excludes single-snapshot planarity
+            if exclude_single_snapshot is True:
+                t_corr[host_key] = deltat[deltat > 0]
+            else:
+                t_corr[host_key] = deltat
+
+
+        all_t_corr = []
+        for host in t_corr.keys():
+            all_t_corr = np.concatenate((all_t_corr, t_corr[host]))
+            if len(t_corr[host]) > 0:
+                print(host, ': intervals of planarity in Gyr =', t_corr[host])
+            #print(host, 'significant intervals of planarity in Gyr =', t_corr[host][t_corr[host] >= 1])
+
+        print(y_type)
+        print('total number of time intervals with planarity:', len(all_t_corr))    
+        print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
+        t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
+        prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
+                    'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
+
+        t_hist, tb = np.histogram(all_t_corr, bins=t_bins)
+        t_hist_list.append(t_hist)
+        t_bin_list.append(tb)
+        #plt.hist(all_t_corr, bins=t_bins, color=c, alpha=alpha_, histtype=h, 
+        #        linewidth=3, label=prop_labels[y_type])
+
+    t_hist_max = np.max(list(itertools.chain.from_iterable(t_hist_list)))
+    for t_h,t_b, c, y_key in zip(t_hist_list, t_bin_list, color_list, y_type_list):
+        t_h_ = t_h/t_hist_max
+        if 'orb' in y_key:
+            plt.bar(t_b[:-1], t_h_, align='edge', color="none", alpha=1, 
+                    linewidth=3, label=prop_labels[y_key], width=t_bin_width,
+                    edgecolor='k')
+        else:
+            plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.6, 
+                    linewidth=3, label=prop_labels[y_key], width=t_bin_width)
+    plt.legend(loc='upper right', title_fontsize=18, title=legend_title)
+    plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
+    #plt.ylabel('Frequency', fontsize=20)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    #ax.set_xticks([k for k in range(int(np.max(all_t_corr)))])
+    #ax.set_xticklabels([str(k) for k in range(int(np.max(all_t_corr)))])
+    plt.show()
+
+    return fig
+
 def histogram_planar_intervals(
     grouped_table, y_type, x_type='time', exclude_single_snapshot=True,
-    threshold_probability=0.5):
+    threshold_probability=0.5, t_bin_width=0.25):
     # finding t_corr intervals, lengths of time that planar probability falls
     # below some set threshold
     t_corr = {}
@@ -162,11 +270,14 @@ def histogram_planar_intervals(
     print('total number of time intervals with planarity:', len(all_t_corr))    
     print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
 
-    t_bins = np.arange(0,np.max(all_t_corr)+0.5,0.25)
-    plt.figure()
+    t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
+    fig, ax = plt.subplots(1,1,figsize=(6,5))
     plt.hist(all_t_corr, bins=t_bins)
-    plt.xlabel(r'$\Delta$t(planar) [Gyr]')
-    plt.ylabel('frequency')
+    plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
+    plt.ylabel('Frequency', fontsize=20)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.set_xticks([k for k in range(6)])
+    ax.set_xticklabels([str(k) for k in range(6)])
     plt.show()
 
 def dot_poles_vs_time(
@@ -413,13 +524,15 @@ def frac_in_groups(sat_infall_dict, time_table):
 
 def host_mass_correlation(
     host_table, grouped_table, y_type, dmo_grouped_table=None, y_label=None,
-    redshift_limit=0.2):
+    redshift_limit=0.2, mass_kind='star.mass', loc=None):
     #median_probs, percentile_probs = host_probability_stats(grouped_table, y_type)
     #if dmo_grouped_table:
     #    dmo_median_probs, dmo_percentile_probs = host_probability_stats(dmo_grouped_table, y_type)
     
     #prob vs host stellar mass
-    plt.figure(figsize=(7,6))
+    f1 = plt.figure(figsize=(6.5,5))
+    f1.set_tight_layout(False)
+    f1.subplots_adjust(left=0.13, right=0.96, top=0.98, bottom=0.16)
     group_host_mass = []
     medians = []
     median_dict = {}
@@ -436,67 +549,123 @@ def host_mass_correlation(
         group_host_mass.append(np.array(host_table['star.mass'][host_table['host'] == group_host])[0])
         plt.errorbar(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
             median, _err, color='k', alpha=0.6)
+        cb1 = plt.scatter(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
+            median_dict[group_host], 
+            c=host_table['m.200m'][host_table['host'] == group_host]/1e12, 
+            s=144, marker='o', cmap=cm.plasma, vmin=0.8, vmax=2.2, edgecolors='k')
+        """
         if group_host in ['Romeo', 'Juliet', 'Thelma', 'Louise', 'Romulus', 'Remus']:
-            plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
-                median, '*', color='r')
+            if group_host == 'Romeo':
+                plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
+                    median, 'o', color='r', markeredgecolor='k', alpha=0.8, label='paired host')
+            else:
+                plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
+                    median, 'o', color='r', markeredgecolor='k', alpha=0.8)
         else:
-            plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
-                median, '^', color='b')
-
-    plt.xlabel(r'Host M$_*$ [$10^{10}$ M$_{\odot}$]', fontsize=18)
+            if group_host == 'm12i':
+                plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
+                    median, '^', color='b', markeredgecolor='k', alpha=0.8, label='isolated host')
+            else:
+                plt.plot(np.array(host_table['star.mass'][host_table['host'] == group_host])/1e10, 
+                    median, '^', color='b', markeredgecolor='k', alpha=0.8)
+        """
+    cb_1 = f1.colorbar(cb1, ticks=[1.0,1.5,2.0])
+    cb_1.set_label(label=r'Host M$_{\rm 200m}$ [$10^{12}$ M$_{\odot}$]', fontsize=20)
+    cb_1.ax.tick_params(labelsize=20)
+    plt.xlabel(r'Host M$_*$ [$10^{10}$ M$_{\odot}$]', fontsize=20)
     if y_label is None:
-        plt.ylabel('prob of greater isotropic planarity', fontsize=18)
+        plt.ylabel('prob of greater isotropic planarity', fontsize=20)
     else:
-        plt.ylabel(y_label, fontsize=18)
+        plt.ylabel(y_label, fontsize=20)
     #plt.legend(ncol=3, loc=1)
+    plt.legend(loc=loc, fontsize=18)
+    plt.tick_params(axis='both', which='major', labelsize=20)
 
     print('stellar mass pearson correlation coefficient = ', np.corrcoef(group_host_mass, medians)[0][1])
     print('stellar mass spearman correlation coefficient = ', spearmanr(group_host_mass, medians))
 
     #prob vs host 200m
-    plt.figure(figsize=(7,6))
+    f2 = plt.figure(figsize=(6,5))
+    f2.set_tight_layout(False)
+    f2.subplots_adjust(left=0.13, right=0.96, top=0.98, bottom=0.16)
     group_host_mass_200m = []
     for host, (group_host, group_metrics) in zip(host_table['host'], grouped_table):
-        group_host_mass_200m.append(np.array(host_table['200m'][host_table['host'] == group_host])[0])
-        plt.errorbar(np.array(host_table['200m'][host_table['host'] == group_host])/1e12, 
+        group_host_mass_200m.append(np.array(host_table['m.200m'][host_table['host'] == group_host])[0])
+        plt.errorbar(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
             median_dict[group_host], err_dict[group_host], color='k', alpha=0.6)
+        print(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+            median_dict[group_host], host_table['star.mass'][host_table['host'] == group_host]/1e10)
+        cb = plt.scatter(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+            median_dict[group_host], 
+            c=host_table['star.mass'][host_table['host'] == group_host]/1e10, 
+            s=144, marker='o', cmap=cm.plasma, vmin=1, vmax=10, edgecolors='k')
+        """
         if group_host in ['Romeo', 'Juliet', 'Thelma', 'Louise', 'Romulus', 'Remus']:
-            plt.plot(np.array(host_table['200m'][host_table['host'] == group_host])/1e12, 
-                median_dict[group_host], '*', color='r')
+            if group_host == 'Romeo':
+                plt.plot(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+                    median_dict[group_host], 'o', color='r', markeredgecolor='k', alpha=0.8, 
+                    label='paired host')
+            else:
+                plt.plot(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+                    median_dict[group_host], 'o', color='r', markeredgecolor='k', alpha=0.8)
         else:
-            plt.plot(np.array(host_table['200m'][host_table['host'] == group_host])/1e12, 
-                median_dict[group_host], '^', color='b')
-
-    plt.xlabel(r'Host M$_{\rm 200m}$ [$10^{12}$ M$_{\odot}$]', fontsize=18)
+            if group_host == 'm12i':
+                plt.plot(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+                    median_dict[group_host], '^', color='b', markeredgecolor='k', alpha=0.8, 
+                    label='isolated host')
+            else:
+                plt.plot(np.array(host_table['m.200m'][host_table['host'] == group_host])/1e12, 
+                    median_dict[group_host], '^', color='b', markeredgecolor='k', alpha=0.8)
+        """
+    cb_= f2.colorbar(cb)
+    cb_.set_label(label=r'Host M$_*$ [$10^{10}$ M$_{\odot}$]', fontsize=20)
+    cb_.ax.tick_params(labelsize=20)
+    plt.xlabel(r'Host M$_{\rm 200m}$ [$10^{12}$ M$_{\odot}$]', fontsize=20)
     if y_label is None:
-        plt.ylabel('prob of greater isotropic planarity', fontsize=18)
+        plt.ylabel('prob of greater isotropic planarity', fontsize=20)
     else:
-        plt.ylabel(y_label, fontsize=18)
+        plt.ylabel(y_label, fontsize=20)
     #plt.legend(ncol=3, loc=1)
+    plt.legend(loc=loc, fontsize=18)
+    plt.tick_params(axis='both', which='major', labelsize=20)
 
     print('halo mass pearson correlation coefficient = ', np.corrcoef(group_host_mass_200m, medians)[0][1])
     print('halo mass spearman correlation coefficient = ', spearmanr(group_host_mass_200m, medians))
 
     #prob vs host m*/200m
-    plt.figure(figsize=(7,6))
+    f3 = plt.figure(figsize=(6,5))
     mass_ratios = []
     for host_sm, host_hm, (group_host, group_metrics) in zip(group_host_mass, group_host_mass_200m, grouped_table):
         mass_ratios.append(host_sm/host_hm)
         plt.errorbar(host_sm/host_hm, median_dict[group_host], err_dict[group_host], color='k', alpha=0.6)
         if group_host in ['Romeo', 'Juliet', 'Thelma', 'Louise', 'Romulus', 'Remus']:
-            plt.plot(host_sm/host_hm, median_dict[group_host], '*', color='r')
+            if group_host == 'Romeo':
+                plt.plot(host_sm/host_hm, median_dict[group_host], 'o', color='r', 
+                        markeredgecolor='k', alpha=0.8, label='paired host')
+            else:
+                plt.plot(host_sm/host_hm, median_dict[group_host], 'o', color='r', 
+                        markeredgecolor='k', alpha=0.8)
         else:
-            plt.plot(host_sm/host_hm, median_dict[group_host], '^', color='b')
+            if group_host == 'm12i':
+                plt.plot(host_sm/host_hm, median_dict[group_host], '^', color='b', 
+                        markeredgecolor='k', alpha=0.8, label='isolated host')
+            else:
+                plt.plot(host_sm/host_hm, median_dict[group_host], '^', color='b', 
+                        markeredgecolor='k', alpha=0.8)
 
-    plt.xlabel(r'Host M$_*$/M$_{\rm 200m}$', fontsize=18)
+    plt.xlabel(r'Host M$_*$/M$_{\rm 200m}$', fontsize=20)
     if y_label is None:
-        plt.ylabel('prob of greater isotropic planarity', fontsize=18)
+        plt.ylabel('prob of greater isotropic planarity', fontsize=20)
     else:
-        plt.ylabel(y_label, fontsize=18)
+        plt.ylabel(y_label, fontsize=20)
     #plt.legend(ncol=3, loc=1)
+    plt.legend(loc=loc, fontsize=18)
+    plt.tick_params(axis='both', which='major', labelsize=20)
 
     print('sm/hm pearson correlation coefficient = ', np.corrcoef(mass_ratios, medians)[0][1])
     print('sm/hm spearman correlation coefficient = ', spearmanr(mass_ratios, medians))
+
+    return f1, f2, f3
 
 def plot_probability_vs_concentration(
     grouped_table, grouped_concentration_table, con_metric='r90/r10', 
@@ -688,8 +857,8 @@ def plot_correlation_vs_metric_category(
 def plot_group_frac_correlation(
     grouped_table, table_metric, sat_infall_dict, time_table, redshift_limit, 
     frac_key):
-    fig, ax = plt.subplots(1,1,figsize=(7,6))
-    fig.subplots_adjust(left=0.15, bottom=0.16, right=0.98, top=0.95)
+    fig, ax = plt.subplots(1,1,figsize=(6,5))
+    fig.subplots_adjust(left=0.14, bottom=0.16, right=0.98, top=0.98)
     group_fractions = frac_in_groups(sat_infall_dict, time_table)
     group_fractions = group_fractions[frac_key]
     
@@ -726,13 +895,13 @@ def plot_group_frac_correlation(
 
         #median_cons.append(median_con)
         #median_probs.append(median_prob)
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=20)
     label_dict = {'axis.ratio':'Axis ratio [c/a]', 
                   'opening.angle':'Opening angle [deg]',
                   'rms.min':'RMS thickness [kpc]',
                   'orbital.pole.dispersion':'Orbital pole dispersion [deg]',
-                  'largest.sat.group.fracs':'Fraction of z=0 satellites in largest group at infall'}
-    plt.ylabel(label_dict[table_metric], fontsize=22)
+                  'largest.sat.group.fracs':'Fraction of z=0 sats. in largest groups at infall'}
+    plt.ylabel(label_dict[table_metric], fontsize=20)
     plt.xlabel(label_dict[frac_key], fontsize=18)
     plt.legend(loc=4, fontsize=18)
     plt.xlim((0,0.5))
@@ -741,10 +910,12 @@ def plot_group_frac_correlation(
     print('pearson correlation coefficient = ', np.corrcoef(med_fracs, med_probs))
     print('spearman correlation coefficient = ', spearmanr(med_fracs, med_probs))
 
+    return fig
+
 def lmc_correlation(
     host_table, grouped_table, y_type, y_label=None, redshift_limit=0.2):
-    fig, ax = plt.subplots(1,1,figsize=(7,6))
-    fig.subplots_adjust(left=0.15, bottom=0.16, right=0.98, top=0.95)
+    fig, ax = plt.subplots(1,1,figsize=(6,5))
+    fig.subplots_adjust(left=0.15, bottom=0.16, right=0.98, top=0.98)
     group_host_mass = []
     medians = []
     median_dict = {}
@@ -757,40 +928,43 @@ def lmc_correlation(
         percentile_ = np.reshape(np.nanpercentile(group_metrics[y_type][redshift_mask], [16, 84]), (2,1))
         _err = np.array([median-percentile_[0], percentile_[1]-median])
         err_dict[group_host] = _err
-        group_host_mass.append(np.array(host_table['lmc.passages'][host_table['host'] == group_host])[0])
-        plt.errorbar(np.array(host_table['lmc.passages'][host_table['host'] == group_host]), 
+        group_host_mass.append(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host])[0])
+        plt.errorbar(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host]), 
             median, _err, color='k', alpha=0.6)
 
         if group_host in ['Romeo', 'Juliet', 'Thelma', 'Louise', 'Romulus', 'Remus']:
             if group_host == 'Romeo':
-                plt.plot(np.array(host_table['lmc.passages'][host_table['host'] == group_host]), 
+                plt.plot(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host]), 
                          median, 'o', color='r', markeredgecolor='k', alpha=0.8, label='paired host')
             else:
-                plt.plot(np.array(host_table['lmc.passages'][host_table['host'] == group_host]), 
+                plt.plot(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host]), 
                          median, 'o', color='r', markeredgecolor='k', 
                          alpha=0.8)
         else:
             if group_host == 'm12i':
-                plt.plot(np.array(host_table['lmc.passages'][host_table['host'] == group_host]), 
+                plt.plot(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host]), 
                          median, '^', color='b', markeredgecolor='k', alpha=0.8, label='isolated host')
             else:
-                plt.plot(np.array(host_table['lmc.passages'][host_table['host'] == group_host]), 
+                plt.plot(np.array(host_table['num.lmc.passages'][host_table['host'] == group_host]), 
                          median, '^', color='b', markeredgecolor='k', alpha=0.8)  
 
-    plt.xlabel(r'Number of LMC-like passages', fontsize=22)
-    ax.tick_params(axis='both', which='major', labelsize=18)
+    plt.xlabel(r'Number of LMC-like passages', fontsize=20)
+    ax.tick_params(axis='both', which='major', labelsize=20)
     label_dict = {'axis.ratio':'Axis ratio [c/a]', 
                   'opening.angle':'Opening angle [deg]',
                   'rms.min':'RMS thickness [kpc]',
                   'orbital.pole.dispersion':'Orbital pole dispersion [deg]',
                   'largest.sat.group.fracs':'Fraction of z=0 satellites in largest group at infall'}
     if y_label is None:
-        plt.ylabel(label_dict[y_type], fontsize=22)
+        plt.ylabel(label_dict[y_type], fontsize=20)
     else:
-        plt.ylabel(y_label, fontsize=18)
+        plt.ylabel(y_label, fontsize=20)
 
-    print('stellar mass pearson correlation coefficient = ', np.corrcoef(group_host_mass, medians)[0][1])
-    print('stellar mass spearman correlation coefficient = ', spearmanr(group_host_mass, medians))
+    plt.legend(fontsize=20, loc='center left')
+    print('pearson correlation coefficient = ', np.corrcoef(group_host_mass, medians)[0][1])
+    print('spearman correlation coefficient = ', spearmanr(group_host_mass, medians))
+
+    return fig
 
 #############################
 ### isotropic comparisons ###

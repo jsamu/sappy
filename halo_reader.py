@@ -28,7 +28,7 @@ class SatParam(object):
     r_bins = np.insert(r_bins, 0, 0)
 
     # angular bins to use for plotting/calculations
-    a_width = 2.5
+    a_width = 1.5
     a_bins = ut.binning.BinClass([0, 90], width=a_width).maxs
     a_bins_plt = 2*a_bins
 
