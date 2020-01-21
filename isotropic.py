@@ -263,35 +263,6 @@ def iso_open_angle_v_r(iso_hal, threshold_fraction=0.5, radius_bins=None, angle_
     return {'radii':hal_rad, 'angles':hal_angle}
 
 @jit
-def iso_rand_angle_width_old(
-    iso_hal, threshold_fraction=1.0, n_iter=None, angle_range=None,
-    angle_width=None):
-    '''
-    Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
-    realizations. Finds the angle off of the simulation x-axis that encloses a given
-    fraction of the satellites, and then gets the minimum of this angle across all
-    random realizations for each host halo at each redshift for sat.n_iter realizations
-    of isotropic satellite positions.
-    '''
-    rand_axes, rand_matrices = ra.rand_rot_vec(n_iter)
-    phi_width_n = np.zeros(n_iter)
-
-    for n in range(int(n_iter)):
-        snap_coords = iso_hal['iso_coords'][n]
-        if len(snap_coords) == 0:
-            phi_width_n[n] = np.nan
-        else:
-            phi_width_k = np.zeros(n_iter)
-            for k,axes in enumerate(rand_axes):
-                snap_prime_coords = ut.basic.coordinate.get_coordinates_rotated(snap_coords, rotation_tensor=axes)
-                tangent_of_openning_angle = snap_prime_coords[:,2]/np.sqrt(snap_prime_coords[:,0]**2 + snap_prime_coords[:,1]**2)
-                snap_angles_n = np.degrees(np.arctan(tangent_of_openning_angle))
-                phi_width_k = ra.optim_open_angle(snap_angles_n, angle_range, threshold_fraction, phi_width_k, k)
-            phi_width_n[n] = np.min(phi_width_k)
-
-    return phi_width_n
-
-@jit
 def iso_rand_angle_width(
     iso_hal, threshold_fraction=1.0, n_iter=None, angle_range=None,
     angle_width=None, n_sub_sample=None):
@@ -363,30 +334,6 @@ def orbital_pole_dispersion(iso_hal, n_iter=None):
             pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))
             pole_disp_n[n] = np.degrees(pole_disp)
 
-    return pole_disp_n
-
-def orbital_pole_dispersion_old(iso_hal, n_iter=None):
-    '''
-    Calculate the angular dispersion [deg] of satellite orbital poles around
-    their mean orbital pole for isotropic unit velocities."
-    '''
-    pole_disp_n = np.zeros(n_iter)
-    #avg_pole_n = np.zeros((n_iter, 3))
-    true_coords = iso_hal['true_coords']
-
-    for n in range(n_iter):
-        iso_vels = iso_hal['iso_vels'][n]
-        if len(iso_vels) == 0:
-            pole_disp_n[n] = np.nan
-            #avg_pole_n[n] = np.array([np.nan, np.nan, np.nan])
-        else:
-            j_vec = np.array([np.cross(x,v)/np.linalg.norm(np.cross(x,v)) for x, v in zip(true_coords, iso_vels)])
-            avg_j_vec = np.mean(j_vec, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(j_vec, axis=0))
-            avg_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec]) 
-            pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))
-            pole_disp_n[n] = np.degrees(pole_disp)
-            #avg_pole_n[n] = avg_j_vec
-    #return {'orbital.pole.dispersion':pole_disp_n, 'average.orbital.pole':avg_pole_n}
     return pole_disp_n
 
 @jit
