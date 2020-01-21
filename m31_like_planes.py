@@ -145,6 +145,8 @@ def axis_ratio(
         return sat_axes[2][0]
 
 ### start here
+#m12_los = sio.loop_hal(m12_sh, 'most.star.mass', rand_los_vel_coherence, 
+#    **{'n_iter':100, 'projection':150})
 
 def rand_los_vel_coherence(
     hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
@@ -193,3 +195,36 @@ def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
     rms_minor[i] = np.sqrt(np.mean(sat_coords[:,2]**2))
 
     return coherent_frac, rms_minor
+
+@jit
+def iso_rand_los_vel_coherence(iso_hal, n_iter=1000, projection=None):
+    """
+    Find maximum co-rotating fraction of isotropic satellite velocities.
+    """
+    rot_vecs, rand_matrices = ra.rand_rot_vec(n_iter)
+    coherent_frac_n = np.zeros(n_iter)
+    rms_minor_n = np.zeros(n_iter)
+
+    for n in range(n_iter):
+        iso_coords = iso_hal['iso_coords'][n]
+        iso_vels = iso_hal['iso_vels'][n]
+        coherent_frac_k = np.zeros(n_iter)
+        rms_minor_k = np.zeros(n_iter)
+
+        for k, rot_vec in enumerate(rot_vecs):
+            # rotate positions and velocities
+            sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(iso_coords, rotation_tensor=rot_vec)
+            sat_prime_vels = ut.basic.coordinate.get_coordinates_rotated(iso_vels, rotation_tensor=rot_vec)
+            if projection is not None:
+                sat_prime_coords, proj_2d_mask = select_in_2d_projection(sat_prime_coords, rlim2d=projection, return_mask=True)
+                sat_prime_vels = sat_prime_vels[proj_2d_mask]
+
+            # find 2D co-rotating fraction at each iteration
+            coherent_frac_k, rms_minor_k = optim_los_vel_coherence(
+                sat_prime_coords, sat_prime_vels, coherent_frac_k, rms_minor_k, k)
+
+        rms_minor_n[n] = np.min(rms_minor_k)
+        min_rms_index = np.where(rms_minor_k == np.min(rms_minor_k))[0][0]
+        coherent_frac_n[n] = coherent_frac_k[min_rms_index]
+
+    return {'coherent.fraction':np.mean(coherent_frac_n), 'rms':np.mean(rms_minor_n)}

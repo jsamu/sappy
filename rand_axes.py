@@ -158,53 +158,6 @@ def rand_rms_min(
     else:
         return min_rms_minor
 
-def rand_los_vel_coherence(
-    hal, hal_mask=None, host_str='host.', n_iter=None, r_frac=1.0, 
-    radius_bins=None):
-    """
-    Find maximum fraction of satellites with correlated LOS velocities along
-    n_iter different lines of sight.
-    """
-    rad = spa.r_fraction(hal, hal_mask=hal_mask, host_str='host.', frac=r_frac, radius_bins=radius_bins)
-    radial_mask = hal.prop(host_str+'distance.total') <= rad
-    sat_vels = hal.prop(host_str+'velocity')[hal_mask & radial_mask]
-    sat_coords = hal.prop(host_str+'distance')[hal_mask & radial_mask]
-    rot_vecs, rot_mats = rand_rot_vec(n_iter)
-    coherent_frac_n = np.zeros(n_iter)
-    rms_minor_n = np.zeros(n_iter)
-
-    for n, rot_vec in enumerate(rot_vecs):
-        # rotate positions and velocities
-        sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vec)
-        sat_prime_vels = ut.basic.coordinate.get_coordinates_rotated(sat_vels, rotation_tensor=rot_vec)
-
-        # get fraction of satellites with coherence in LOS velocity and
-        # rms height for each random set of axes
-        coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
-            sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
-
-    min_rms_minor = np.min(rms_minor_n)
-    min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
-
-    #return max_coherent_frac
-    return {'coherent.fraction':coherent_frac_n[min_rms_index], 'rms':min_rms_minor}
-
-@jit(nopython=True)
-def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
-    # find 2D co-rotating fraction at each iteration
-    # x axis [0] is along LOS, y axis [1] determines left or right side
-    left_sats = sat_coords[:,1] < 0
-    right_sats = sat_coords[:,1] > 0
-    approaching = sat_vels[:,0] < 0
-    receding = sat_vels[:,0] > 0
-    fracs = np.zeros(2)
-    fracs[0] = (np.sum(right_sats & receding) + np.sum(left_sats & approaching))/sat_coords.size
-    fracs[1] = (np.sum(right_sats & approaching) + np.sum(left_sats & receding))/sat_coords.size
-    coherent_frac[i] = np.max(fracs)
-    rms_minor[i] = np.sqrt(np.mean(sat_coords[:,2]**2))
-
-    return coherent_frac, rms_minor
-
 def rand_frac_open_angle(hal, hal_mask=None, angle_bins=None, n_iter=1000):
     '''
     Calculate the fraction of satellites enclosed at each angular bin in sat.a_bins
