@@ -41,7 +41,7 @@ class SatParam(object):
     vel_circ_max = 10
     abs_number = 11
     v_peak = 35
-    mass_peak = 5.7e9
+    mass_peak = 8e8
     m_bound = 1e7
 
     # completeness distance(s)

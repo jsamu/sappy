@@ -62,7 +62,6 @@ def rand_rms_min(
     else:
         return min_rms_minor
 
-
 def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
     '''
     Calculates opening angles off of a set of randomly/isotropicallly generated
@@ -113,7 +112,6 @@ def rand_angle_width(
     else:
         return phi_width
 
-
 @jit
 def get_satellite_principal_axes(
     hal, hal_mask=None, host_str='host.', mass_kind=None, projection=None):
@@ -143,10 +141,6 @@ def axis_ratio(
         return {'axis.ratio':sat_axes[2][0], 'ax':sat_axes[0][2]}
     else:
         return sat_axes[2][0]
-
-### start here
-#m12_los = sio.loop_hal(m12_sh, 'most.star.mass', rand_los_vel_coherence, 
-#    **{'n_iter':100, 'projection':150})
 
 def rand_los_vel_coherence(
     hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
@@ -196,6 +190,7 @@ def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
 
     return coherent_frac, rms_minor
 
+# included as a test, average isotropic fraction is around 0.65-0.68
 @jit
 def iso_rand_los_vel_coherence(iso_hal, n_iter=1000, projection=None):
     """
