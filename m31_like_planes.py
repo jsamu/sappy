@@ -170,7 +170,8 @@ def rand_los_vel_coherence(
     min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
 
     #return max_coherent_frac
-    return {'coherent.fraction':coherent_frac_n[min_rms_index], 'rms':min_rms_minor}
+    #return {'coherent.fraction':coherent_frac_n[min_rms_index], 'rms':min_rms_minor}
+    return coherent_frac_n[min_rms_index]
 
 @jit(nopython=True)
 def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
@@ -190,7 +191,10 @@ def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
 
     return coherent_frac, rms_minor
 
-# included as a test, average isotropic fraction is around 0.65-0.68
+# included as a test, average isotropic fraction is around 0.65-0.68 for
+# 'most.massive' mask, and ~0.6 for 'mass.peak' mask (> 8e8 Msun), so as number of
+# satellites increases, I think it's getting closer to the expected 0.5
+# right around 0.5-0.55 for mpeak > 1e8, as expected
 @jit
 def iso_rand_los_vel_coherence(iso_hal, n_iter=1000, projection=None):
     """
