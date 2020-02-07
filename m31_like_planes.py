@@ -113,6 +113,42 @@ def rand_angle_width(
         return phi_width
 
 @jit
+def axis_ratio(
+    hal, hal_mask=None, host_str='host.', return_ax=False, projection=None, 
+    n_iter=1000):
+    '''
+    Get the axis ratio (minor/major) for the total distribution of satellites
+    within the fiducial virial radius of the host halo.
+    '''
+    sat_coords = hal.prop(host_str+'distance')[hal_mask]
+    rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
+    axis_ratio_n = np.zeros(n_iter)
+
+    for n in range(n_iter):
+        sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
+        if projection is not None:
+            sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
+        sat_axes = ut.coordinate.get_principal_axes(sat_prime_coords)
+        axis_ratio_n[n] = sat_axes[2][0]
+
+    return np.min(axis_ratio_n)
+
+@jit
+def axis_ratio_old(
+    hal, hal_mask=None, host_str='host.', return_ax=False, projection=None):
+    '''
+    Get the axis ratio (minor/major) for the total distribution of satellites
+    within the fiducial virial radius of the host halo.
+    '''
+    hal_mask = sio.default_mask(hal, hal_mask)
+    sat_axes = get_satellite_principal_axes(hal, hal_mask, host_str=host_str, projection=projection)
+
+    if return_ax is True:
+        return {'axis.ratio':sat_axes[2][0], 'ax':sat_axes[0][2]}
+    else:
+        return sat_axes[2][0]
+
+@jit
 def get_satellite_principal_axes(
     hal, hal_mask=None, host_str='host.', mass_kind=None, projection=None):
     '''
@@ -126,21 +162,6 @@ def get_satellite_principal_axes(
     moi_quantities = ut.coordinate.get_principal_axes(distance_vectors)
 
     return moi_quantities
-
-@jit
-def axis_ratio(
-    hal, hal_mask=None, host_str='host.', return_ax=False, projection=None):
-    '''
-    Get the axis ratio (minor/major) for the total distribution of satellites
-    within the fiducial virial radius of the host halo.
-    '''
-    hal_mask = sio.default_mask(hal, hal_mask)
-    sat_axes = get_satellite_principal_axes(hal, hal_mask, host_str=host_str, projection=projection)
-
-    if return_ax is True:
-        return {'axis.ratio':sat_axes[2][0], 'ax':sat_axes[0][2]}
-    else:
-        return sat_axes[2][0]
 
 def rand_los_vel_coherence(
     hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
