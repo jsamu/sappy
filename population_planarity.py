@@ -145,13 +145,17 @@ def histogram_planar_intervals2(
 
 
         all_t_corr = []
+        hosts_with_planarity = []
         for host in t_corr.keys():
             all_t_corr = np.concatenate((all_t_corr, t_corr[host]))
             if len(t_corr[host]) > 0:
-                print(host, ': intervals of planarity in Gyr =', t_corr[host])
+                #print(host, ': intervals of planarity in Gyr =', t_corr[host])
+                print(host, ': max interval of planarity in Gyr =', np.max(t_corr[host]))
+                hosts_with_planarity.append(host)
             #print(host, 'significant intervals of planarity in Gyr =', t_corr[host][t_corr[host] >= 1])
 
         print(y_type)
+        print('total number of hosts with planarity:', len(hosts_with_planarity), hosts_with_planarity)
         print('total number of time intervals with planarity:', len(all_t_corr))    
         print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
         t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
