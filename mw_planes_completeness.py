@@ -55,7 +55,7 @@ def select_out_of_disk(
     # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
     sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
     tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
-    disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) < disk_mask_angle
+    disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
 
     if return_mask:
         return sat_coords[disk_mask], disk_mask
@@ -64,8 +64,9 @@ def select_out_of_disk(
 
 @jit
 def rand_rms_min(
-    hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None, n_iter=None, r_frac=None, 
-    radius_bins=None, return_ax=False, return_parallel=False, host_axes_dict=None):
+    hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None,
+    n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
+    return_parallel=False, host_axes_dict=None):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the rms along the z-axis that encloses the specified
