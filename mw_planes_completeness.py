@@ -76,7 +76,8 @@ def rand_rms_min(
     if r_frac is None:
         sat_coords = hal.prop(host_str+'distance')[hal_mask]
     else:
-        rad = spa.r_fraction(hal, hal_mask=hal_mask, host_str=host_str, frac=r_frac, radius_bins=radius_bins)
+        rad = spa.r_fraction(hal, hal_mask=hal_mask, host_str=host_str, 
+            host_name=None, redshift_index=None, frac=r_frac, radius_bins=radius_bins)
         radial_mask = hal.prop(host_str+'distance.total') <= rad
         sat_coords = hal.prop(host_str+'distance')[hal_mask & radial_mask]
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
@@ -139,7 +140,8 @@ def rand_angle_width(
     random realizations for each host halo at each redshift.
     '''
     rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, 
-        host_str=host_str, n_iter=n_iter, host_axes_dict=host_axes_dict)
+        host_str=host_str, host_name=None, redshift_index=None, n_iter=n_iter, 
+        host_axes_dict=host_axes_dict)
     phi_width_n = np.zeros(n_iter)
 
     for n, snap_angles_n in enumerate(rand_angles):
