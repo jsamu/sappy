@@ -62,6 +62,7 @@ def select_out_of_disk(
     else:
         return sat_coords[disk_mask]
 
+@jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None,
     n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
@@ -91,8 +92,8 @@ def rand_rms_min(
         rms_minor_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,2]**2))
         rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
 
-    min_rms_minor = np.min(rms_minor_n)
-    min_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
+    min_rms_minor = np.nanmin(rms_minor_n)
+    min_index = np.where(rms_minor_n == np.nanmin(rms_minor_n))[0][0]
     if return_ax is True:
         rms_major = rms_major_n[min_index]
         # return just the vector normal to the plane
@@ -127,6 +128,7 @@ def rand_angle(
 
     return np.array(open_angle_n), rot_vecs, rot_mats
 
+@jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None, 
     n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
@@ -148,8 +150,8 @@ def rand_angle_width(
         else:
             phi_width_n = ra.optim_open_angle(snap_angles_n, angle_range, fraction, phi_width_n, n)
 
-    phi_width = np.min(phi_width_n)
-    min_index = np.where(phi_width_n == np.min(phi_width_n))[0][0]
+    phi_width = np.nanmin(phi_width_n)
+    min_index = np.where(phi_width_n == np.nanmin(phi_width_n))[0][0]
 
     # return just the vector normal to the plane
     min_ax = rand_axes[min_index][2]
