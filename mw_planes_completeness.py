@@ -138,8 +138,8 @@ def rand_angle_width(
     random realizations for each host halo at each redshift.
     '''
     rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, 
-        host_str=host_str, host_name=None, redshift_index=None, n_iter=n_iter, 
-        host_axes_dict=host_axes_dict)
+        host_str=host_str, host_name=host_name, redshift_index=redshift_index,
+        n_iter=n_iter, host_axes_dict=host_axes_dict)
     phi_width_n = np.zeros(n_iter)
 
     for n, snap_angles_n in enumerate(rand_angles):
