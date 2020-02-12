@@ -62,7 +62,6 @@ def select_out_of_disk(
     else:
         return sat_coords[disk_mask]
 
-@jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None,
     n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
@@ -77,7 +76,7 @@ def rand_rms_min(
         sat_coords = hal.prop(host_str+'distance')[hal_mask]
     else:
         rad = spa.r_fraction(hal, hal_mask=hal_mask, host_str=host_str, 
-            host_name=None, redshift_index=None, frac=r_frac, radius_bins=radius_bins)
+            frac=r_frac, radius_bins=radius_bins)
         radial_mask = hal.prop(host_str+'distance.total') <= rad
         sat_coords = hal.prop(host_str+'distance')[hal_mask & radial_mask]
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
@@ -128,7 +127,6 @@ def rand_angle(
 
     return np.array(open_angle_n), rot_vecs, rot_mats
 
-@jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None, 
     n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
