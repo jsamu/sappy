@@ -49,9 +49,9 @@ def select_out_of_disk(
     sat_coords, host_axes_dict, host_name, redshift_index, disk_mask_angle=12.0,
     return_mask=False):
     if 'm12' in host_name:
-        disk_axes = host_axes_dict[host_name][0][:][redshift_index]
+        disk_axes = host_axes_dict[host_name][0][redshift_index]
     else:
-        disk_axes = host_axes_dict[host_name][:][redshift_index]
+        disk_axes = host_axes_dict[host_name][redshift_index]
     # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
     sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
     tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
@@ -62,7 +62,7 @@ def select_out_of_disk(
     else:
         return sat_coords[disk_mask]
 
-@jit
+#@jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None,
     n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
@@ -128,7 +128,7 @@ def rand_angle(
 
     return np.array(open_angle_n), rot_vecs, rot_mats
 
-@jit
+#@jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', host_name=None, redshift_index=None, 
     n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
