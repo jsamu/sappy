@@ -64,7 +64,7 @@ def select_out_of_disk(
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
     n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
-    return_parallel=False, host_axes_dict=None):
+    return_parallel=False, host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the rms along the z-axis that encloses the specified
@@ -83,7 +83,8 @@ def rand_rms_min(
     rms_major_n = np.zeros(n_iter)
 
     # apply disk mask
-    sat_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index)
+    sat_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index,
+                                    disk_mask_angle=disk_mask_angle)
 
     for n, rot_vec in enumerate(rot_vecs):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vec)
@@ -105,7 +106,7 @@ def rand_rms_min(
 
 def rand_angle(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    n_iter=1000, host_axes_dict=None):
+    n_iter=1000, host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Calculates opening angles off of a set of randomly/isotropicallly generated
     axes (for sat.n_iter realizations).
@@ -117,7 +118,8 @@ def rand_angle(
     open_angle_n = []
 
     # apply disk mask
-    sat_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index)
+    sat_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index,
+                                    disk_mask_angle=disk_mask_angle)
 
     for n in range(n_iter):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
@@ -130,7 +132,7 @@ def rand_angle(
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
     n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
-    host_axes_dict=None):
+    host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the angle off of the simulation x-axis that encloses a given
@@ -139,7 +141,7 @@ def rand_angle_width(
     '''
     rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, 
         host_str=host_str, host_name=host_name, snapshot_index=snapshot_index,
-        n_iter=n_iter, host_axes_dict=host_axes_dict)
+        n_iter=n_iter, host_axes_dict=host_axes_dict, disk_mask_angle=disk_mask_angle)
     phi_width_n = np.zeros(n_iter)
 
     for n, snap_angles_n in enumerate(rand_angles):
@@ -162,7 +164,7 @@ def rand_angle_width(
 @jit
 def axis_ratio(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    host_axes_dict=None):
+    host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Get the axis ratio (minor/major) for the disk-masked distribution of 
     satellites.
@@ -175,14 +177,15 @@ def axis_ratio(
 
 def orbital_ang_momentum(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
-    norm=False, host_axes_dict=None):
+    norm=False, host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Compute mass-agnostic orbital angular momentum as L=(v)x(r) where the
     vectors are defined with respect to the central host halo. Returned value
     has units of kpc^2/s.
     '''
     sat_coords = hal.prop(host_str+'distance')[hal_mask]#*ut.basic.constant.km_per_kpc
-    position_masked, disk_mask = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index, return_mask=True)
+    position_masked, disk_mask = select_out_of_disk(sat_coords, host_axes_dict, 
+        host_name, snapshot_index, return_mask=True, disk_mask_angle=disk_mask_angle)
     velocity = hal.prop(host_str+'velocity')[hal_mask]*ut.basic.constant.kpc_per_km
     velocity_masked = velocity[disk_mask]
     if norm is True:
@@ -194,7 +197,7 @@ def orbital_ang_momentum(
 
 def orbital_pole_dispersion(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
-    host_axes_dict=None):
+    host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Calculate the angular dispersion [deg] of satellite orbital poles around
     their mean orbital pole.
@@ -204,7 +207,7 @@ def orbital_pole_dispersion(
         avg_j_vec = np.array([np.nan, np.nan, np.nan])
     else:
         j_vec = orbital_ang_momentum(hal, hal_mask, host_str, host_name, 
-            snapshot_index, norm=True, host_axes_dict=host_axes_dict)
+            snapshot_index, norm=True, host_axes_dict=host_axes_dict, disk_mask_angle=disk_mask_angle)
         avg_j_vec = np.mean(j_vec, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(j_vec, axis=0))
         avg_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec]) 
         pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))

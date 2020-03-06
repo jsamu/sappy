@@ -160,7 +160,8 @@ def histogram_planar_intervals2(
         print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
         t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
         prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
-                    'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
+                    'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion',
+                    'coherent.frac':'Coherent velocity fraction'}
 
         t_hist, tb = np.histogram(all_t_corr, bins=t_bins)
         t_hist_list.append(t_hist)
@@ -175,6 +176,10 @@ def histogram_planar_intervals2(
             plt.bar(t_b[:-1], t_h_, align='edge', color="none", alpha=1, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width,
                     edgecolor='k')
+        elif 'coherent' in y_key:
+            plt.bar(t_b[:-1], t_h_, align='edge', color="none", alpha=1, 
+                    linewidth=3, label=prop_labels[y_key], width=t_bin_width,
+                    edgecolor='k')
         else:
             plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.6, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width)
@@ -182,6 +187,7 @@ def histogram_planar_intervals2(
     plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
     #plt.ylabel('Frequency', fontsize=20)
     ax.tick_params(axis='both', which='major', labelsize=20)
+    #ax.set_xticks([0,1,2,3,4,5])
     #ax.set_xticks([k for k in range(int(np.max(all_t_corr)))])
     #ax.set_xticklabels([str(k) for k in range(int(np.max(all_t_corr)))])
     plt.show()
