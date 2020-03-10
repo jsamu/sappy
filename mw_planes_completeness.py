@@ -170,7 +170,7 @@ def axis_ratio(
     satellites.
     '''
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
-    sat_masked_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index)
+    sat_masked_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle=disk_mask_angle)
     sat_axes = ut.coordinate.get_principal_axes(sat_masked_coords)
 
     return sat_axes[2][0]
