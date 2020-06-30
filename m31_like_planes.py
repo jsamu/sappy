@@ -11,7 +11,7 @@ from satellite_analysis import rand_axes as ra
 from satellite_analysis import spatial as spa
 
 
-def select_in_2d_projection(sat_coords_rot, rlim2d=150, return_mask=False):
+def old_select_in_2d_projection(sat_coords_rot, rlim2d=150, return_mask=False):
     # choose y axis to be along the line of sight
     # in keeping with rms height convention
     proj_2d = np.sqrt(sat_coords_rot[:,0]**2 + sat_coords_rot[:,2]**2)
@@ -22,10 +22,34 @@ def select_in_2d_projection(sat_coords_rot, rlim2d=150, return_mask=False):
     else:
         return sat_coords_rot[proj_mask]
 
+def select_in_2d_projection(
+    sat_coords_rot, sat_stellar_mass, rlim2d=150, n_sat=None, return_mask=False):
+    # choose y axis to be along the line of sight
+    # in keeping with rms height convention
+    proj_2d = np.sqrt(sat_coords_rot[:,0]**2 + sat_coords_rot[:,2]**2)
+    proj_mask = proj_2d <= rlim2d
+
+    if n_sat is not None:
+        if np.sum(proj_mask) > n_sat:
+            base_ind = np.where(proj_mask)[0]
+            base_sm = sat_stellar_mass[base_ind]
+            top_n_base_sm_ind = np.argsort(base_sm)[-n_sat:]
+            top_n_ind = base_ind[top_n_base_sm_ind]
+            proj_mask = np.zeros(len(sat_stellar_mass), dtype=bool)
+            proj_mask[top_n_ind] = True
+
+    print(np.sum(proj_mask))
+
+    if return_mask:
+        return sat_coords_rot[proj_mask], proj_mask
+    else:
+        return sat_coords_rot[proj_mask]
+
 @jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', n_iter=None, r_frac=None, 
-    radius_bins=None, return_ax=False, return_parallel=False, projection=None):
+    radius_bins=None, return_ax=False, return_parallel=False, projection=None,
+    n_sat=None):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the rms along the z-axis that encloses the specified
@@ -42,10 +66,16 @@ def rand_rms_min(
     rms_minor_n = np.zeros(n_iter)
     rms_major_n = np.zeros(n_iter)
 
+    sat_star_mass = hal.prop('star.mass')[hal_mask]
+
     for n, rot_vec in enumerate(rot_vecs):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vec)
         if projection is not None:
-            sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
+            sat_prime_coords = select_in_2d_projection(sat_prime_coords,
+                                                        sat_star_mass, 
+                                                        rlim2d=projection,
+                                                        n_sat=n_sat)
+            #sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
         rms_minor_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,2]**2))
         rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
 

@@ -166,8 +166,7 @@ def histogram_planar_intervals2(
         t_hist, tb = np.histogram(all_t_corr, bins=t_bins)
         t_hist_list.append(t_hist)
         t_bin_list.append(tb)
-        #plt.hist(all_t_corr, bins=t_bins, color=c, alpha=alpha_, histtype=h, 
-        #        linewidth=3, label=prop_labels[y_type])
+        print('>1 gyr', np.sum(all_t_corr > 1))
 
     t_hist_max = np.max(list(itertools.chain.from_iterable(t_hist_list)))
     for t_h,t_b, c, y_key in zip(t_hist_list, t_bin_list, color_list, y_type_list):
@@ -183,6 +182,7 @@ def histogram_planar_intervals2(
         else:
             plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.6, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width)
+        
     plt.legend(loc='upper right', title_fontsize=18, title=legend_title)
     plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
     #plt.ylabel('Frequency', fontsize=20)
