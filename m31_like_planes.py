@@ -38,8 +38,6 @@ def select_in_2d_projection(
             proj_mask = np.zeros(len(sat_stellar_mass), dtype=bool)
             proj_mask[top_n_ind] = True
 
-    print(np.sum(proj_mask))
-
     if return_mask:
         return sat_coords_rot[proj_mask], proj_mask
     else:
@@ -194,7 +192,7 @@ def get_satellite_principal_axes(
     return moi_quantities
 
 def rand_los_vel_coherence(
-    hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
+    hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, n_sat=None):
     """
     Find maximum fraction of satellites with correlated LOS velocities along
     n_iter different lines of sight.
@@ -205,17 +203,29 @@ def rand_los_vel_coherence(
     coherent_frac_n = np.zeros(n_iter)
     rms_minor_n = np.zeros(n_iter)
 
+    sat_star_mass = hal.prop('star.mass')[hal_mask]
+    num_of_sats = np.zeros(n_iter)
+
     for n, rot_vec in enumerate(rot_vecs):
         # rotate positions and velocities
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vec)
         sat_prime_vels = ut.basic.coordinate.get_coordinates_rotated(sat_vels, rotation_tensor=rot_vec)
         if projection is not None:
-            sat_prime_coords, proj_2d_mask = select_in_2d_projection(sat_prime_coords, rlim2d=projection, return_mask=True)
+            sat_prime_coords, proj_2d_mask = select_in_2d_projection(
+                                            sat_prime_coords,
+                                            sat_star_mass, 
+                                            rlim2d=projection,
+                                            return_mask=True,
+                                            n_sat=n_sat)
+            #sat_prime_coords, proj_2d_mask = select_in_2d_projection(sat_prime_coords, rlim2d=projection, return_mask=True)
             sat_prime_vels = sat_prime_vels[proj_2d_mask]
+            num_of_sats[n] = np.sum(proj_2d_mask)
         # get fraction of satellites with coherence in LOS velocity and
         # rms height for each random set of axes
         coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
             sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
+
+    print('num of sats:', np.min(num_of_sats), np.median(num_of_sats), np.max(num_of_sats))
 
     min_rms_minor = np.min(rms_minor_n)
     min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
