@@ -187,7 +187,7 @@ def rand_los_vel_coherence(
     hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, n_sat=None):
     """
     Find maximum fraction of satellites with correlated LOS velocities along
-    n_iter different lines of sight.
+    n_iter different lines of sight and return maximum fraction.
     """
     sat_vels = hal.prop(host_str+'velocity')[hal_mask]
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
@@ -210,10 +210,10 @@ def rand_los_vel_coherence(
                                             rlim2d=projection,
                                             return_mask=True,
                                             n_sat=n_sat)
-            #sat_prime_coords, proj_2d_mask = select_in_2d_projection(sat_prime_coords, rlim2d=projection, return_mask=True)
             sat_prime_vels = sat_prime_vels[proj_2d_mask]
             num_of_sats[n] = np.sum(proj_2d_mask)
             min_sm_of_sats[n] = np.min(sat_star_mass[proj_2d_mask])
+
         # get fraction of satellites with coherence in LOS velocity and
         # rms height for each random set of axes
         coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
@@ -224,12 +224,13 @@ def rand_los_vel_coherence(
     #print('num of sats:', np.min(num_of_sats), np.median(num_of_sats), np.max(num_of_sats))
     #print('min stellar mass of sats:', np.min(min_sm_of_sats))
 
-    min_rms_minor = np.min(rms_minor_n)
-    min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
+    # why am I selecting a fraction based on min rms height here? probably b/c
+    # the observations are predicated on seeing M31's sat plane edge-on?
+    #min_rms_minor = np.min(rms_minor_n)
+    #min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
 
-    #return max_coherent_frac
-    #return {'coherent.fraction':coherent_frac_n[min_rms_index], 'rms':min_rms_minor}
-    return coherent_frac_n[min_rms_index]
+    #return coherent_frac_n[min_rms_index]
+    return np.max(coherent_frac_n)
 
 @jit(nopython=True)
 def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):
