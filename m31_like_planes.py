@@ -227,8 +227,11 @@ def rand_los_vel_coherence(
         coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
             sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
 
-    print('num of sats:', np.min(num_of_sats), np.median(num_of_sats), np.max(num_of_sats))
-    print('min stellar mass of sats:', np.min(min_sm_of_sats))
+    # print statements to get minimum numbers and stellar masses of satellites
+    # under the different M31-like selection functions
+    #print('num of sats:', np.min(num_of_sats), np.median(num_of_sats), np.max(num_of_sats))
+    #print('min stellar mass of sats:', np.min(min_sm_of_sats))
+
     min_rms_minor = np.min(rms_minor_n)
     min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
 
