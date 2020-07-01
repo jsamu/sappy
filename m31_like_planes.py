@@ -11,17 +11,6 @@ from satellite_analysis import rand_axes as ra
 from satellite_analysis import spatial as spa
 
 
-def old_select_in_2d_projection(sat_coords_rot, rlim2d=150, return_mask=False):
-    # choose y axis to be along the line of sight
-    # in keeping with rms height convention
-    proj_2d = np.sqrt(sat_coords_rot[:,0]**2 + sat_coords_rot[:,2]**2)
-    proj_mask = proj_2d <= rlim2d
-
-    if return_mask:
-        return sat_coords_rot[proj_mask], proj_mask
-    else:
-        return sat_coords_rot[proj_mask]
-
 def select_in_2d_projection(
     sat_coords_rot, sat_stellar_mass, rlim2d=150, n_sat=None, return_mask=False):
     # choose y axis to be along the line of sight
@@ -90,7 +79,8 @@ def rand_rms_min(
     else:
         return min_rms_minor
 
-def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None):
+def rand_angle(
+    hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, n_sat=None):
     '''
     Calculates opening angles off of a set of randomly/isotropicallly generated
     axes (for sat.n_iter realizations).
@@ -101,10 +91,16 @@ def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000, projection=Non
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
     open_angle_n = []
 
+    sat_star_mass = hal.prop('star.mass')[hal_mask]
+
     for n in range(n_iter):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
         if projection is not None:
-            sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
+            sat_prime_coords = select_in_2d_projection(sat_prime_coords,
+                                            sat_star_mass, 
+                                            rlim2d=projection,
+                                            n_sat=n_sat)
+            #sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
         tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
         open_angle_n.append(np.degrees(np.arctan(tangent_of_open_angle)))
 
@@ -113,14 +109,19 @@ def rand_angle(hal, hal_mask=None, host_str='host.', n_iter=1000, projection=Non
 @jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', n_iter=1000, fraction=1.0, 
-    angle_range=None, return_ax=False, projection=None):
+    angle_range=None, return_ax=False, projection=None, n_sat=None):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the angle off of the simulation x-axis that encloses a given
     fraction of the satellites, and then gets the minimum of this angle across all
     random realizations for each host halo at each redshift.
     '''
-    rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, host_str=host_str, n_iter=n_iter, projection=projection)
+    rand_angles, rand_axes, rand_mats = rand_angle(hal, 
+                                                   hal_mask=hal_mask, 
+                                                   host_str=host_str, 
+                                                   n_iter=n_iter, 
+                                                   projection=projection,
+                                                   n_sat=n_sat)
     phi_width_n = np.zeros(n_iter)
 
     for n, snap_angles_n in enumerate(rand_angles):
@@ -143,7 +144,7 @@ def rand_angle_width(
 @jit
 def axis_ratio(
     hal, hal_mask=None, host_str='host.', return_ax=False, projection=None, 
-    n_iter=1000):
+    n_iter=1000, n_sat=None):
     '''
     Get the axis ratio (minor/major) for the total distribution of satellites
     within the fiducial virial radius of the host halo.
@@ -155,26 +156,15 @@ def axis_ratio(
     for n in range(n_iter):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
         if projection is not None:
-            sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
+            sat_prime_coords = select_in_2d_projection(sat_prime_coords,
+                                            sat_star_mass, 
+                                            rlim2d=projection,
+                                            n_sat=n_sat)
+            #sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
         sat_axes = ut.coordinate.get_principal_axes(sat_prime_coords)
         axis_ratio_n[n] = sat_axes[2][0]
 
     return np.min(axis_ratio_n)
-
-@jit
-def axis_ratio_old(
-    hal, hal_mask=None, host_str='host.', return_ax=False, projection=None):
-    '''
-    Get the axis ratio (minor/major) for the total distribution of satellites
-    within the fiducial virial radius of the host halo.
-    '''
-    hal_mask = sio.default_mask(hal, hal_mask)
-    sat_axes = get_satellite_principal_axes(hal, hal_mask, host_str=host_str, projection=projection)
-
-    if return_ax is True:
-        return {'axis.ratio':sat_axes[2][0], 'ax':sat_axes[0][2]}
-    else:
-        return sat_axes[2][0]
 
 @jit
 def get_satellite_principal_axes(
