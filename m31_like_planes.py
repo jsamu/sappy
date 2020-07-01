@@ -205,6 +205,7 @@ def rand_los_vel_coherence(
 
     sat_star_mass = hal.prop('star.mass')[hal_mask]
     num_of_sats = np.zeros(n_iter)
+    min_sm_of_sats = np.zeros(n_iter)
 
     for n, rot_vec in enumerate(rot_vecs):
         # rotate positions and velocities
@@ -220,13 +221,14 @@ def rand_los_vel_coherence(
             #sat_prime_coords, proj_2d_mask = select_in_2d_projection(sat_prime_coords, rlim2d=projection, return_mask=True)
             sat_prime_vels = sat_prime_vels[proj_2d_mask]
             num_of_sats[n] = np.sum(proj_2d_mask)
+            min_sm_of_sats[n] = np.min(sat_star_mass[proj_2d_mask])
         # get fraction of satellites with coherence in LOS velocity and
         # rms height for each random set of axes
         coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
             sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
 
     print('num of sats:', np.min(num_of_sats), np.median(num_of_sats), np.max(num_of_sats))
-
+    print('min stellar mass of sats:', np.min(min_sm_of_sats))
     min_rms_minor = np.min(rms_minor_n)
     min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
 
