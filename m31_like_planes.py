@@ -153,6 +153,8 @@ def axis_ratio(
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
     axis_ratio_n = np.zeros(n_iter)
 
+    sat_star_mass = hal.prop('star.mass')[hal_mask]
+
     for n in range(n_iter):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
         if projection is not None:
@@ -165,7 +167,7 @@ def axis_ratio(
         axis_ratio_n[n] = sat_axes[2][0]
 
     return np.min(axis_ratio_n)
-
+"""
 @jit
 def get_satellite_principal_axes(
     hal, hal_mask=None, host_str='host.', mass_kind=None, projection=None):
@@ -180,7 +182,7 @@ def get_satellite_principal_axes(
     moi_quantities = ut.coordinate.get_principal_axes(distance_vectors)
 
     return moi_quantities
-
+"""
 def rand_los_vel_coherence(
     hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, n_sat=None):
     """
