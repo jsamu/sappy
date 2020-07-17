@@ -89,13 +89,18 @@ def histogram_planar_intervals2(
     fig.subplots_adjust(left=0.14, right=0.98, top=0.98, bottom=0.16)
     t_hist_list = []
     t_bin_list = []
+    t_hist_dict = {}
+    t_bin_dict = {}
     for grouped_table, y_type, threshold_value in zip(
         grouped_table_list, y_type_list, threshold_value_list):
+        
+        print(y_type)
+
         # finding t_corr intervals, lengths of time that planarity falls
         # below a set threshold
         t_corr = {}
         for i,(host_key,host_group) in enumerate(grouped_table):      
-            below_thresh_indices = np.where(host_group[y_type] < threshold_value)[0]
+            below_thresh_indices = np.where(host_group[y_type] <= threshold_value)[0]
 
             times_below_threshold = np.full(len(host_group[y_type]), -1.0)
             for j in below_thresh_indices:
@@ -154,21 +159,29 @@ def histogram_planar_intervals2(
                 hosts_with_planarity.append(host)
             #print(host, 'significant intervals of planarity in Gyr =', t_corr[host][t_corr[host] >= 1])
 
-        print(y_type)
         print('total number of hosts with planarity:', len(hosts_with_planarity), hosts_with_planarity)
         print('total number of time intervals with planarity:', len(all_t_corr))    
-        print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
-        t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
-        prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
-                    'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion',
-                    'coherent.frac':'Coherent velocity fraction'}
+        try:
+            print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
+            t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
+            t_hist, tb = np.histogram(all_t_corr, bins=t_bins)
+            t_hist_list.append(t_hist)
+            t_bin_list.append(tb)
+            t_hist_dict[y_type] = t_hist
+            t_bin_dict[y_type] = tb
+            print('instances of >1 gyr:', np.sum(all_t_corr > 1))
+        except:
+            #pass
+            t_hist_list.append([np.nan, np.nan])
+            t_bin_list.append([np.nan, np.nan])
 
-        t_hist, tb = np.histogram(all_t_corr, bins=t_bins)
-        t_hist_list.append(t_hist)
-        t_bin_list.append(tb)
-        print('>1 gyr', np.sum(all_t_corr > 1))
+        print('\n')
 
-    t_hist_max = np.max(list(itertools.chain.from_iterable(t_hist_list)))
+    prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
+                'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion',
+                'coherent.frac':'Coherent velocity fraction'}
+
+    t_hist_max = np.nanmax(list(itertools.chain.from_iterable(t_hist_list)))
     for t_h,t_b, c, y_key in zip(t_hist_list, t_bin_list, color_list, y_type_list):
         t_h_ = t_h/t_hist_max
         if 'orb' in y_key:
@@ -180,7 +193,7 @@ def histogram_planar_intervals2(
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width,
                     edgecolor='k')
         else:
-            plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.6, 
+            plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.55, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width)
         
     plt.legend(loc='upper right', title_fontsize=18, title=legend_title)
