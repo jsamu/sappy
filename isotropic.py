@@ -116,7 +116,7 @@ def iso_angle_width(iso_hal, threshold_fraction=0.68, angle_bins=None):
     return iter_width
 
 @jit
-def iso_axis_ratio(iso_hal, distribution=True):
+def iso_axis_ratio(iso_hal, distribution=True, verbose=False):
     '''
     Calculate the minor to major axis ratio using the MOI tensor at each redshift
     for each host halo's isotropic satellite coordinates.
@@ -125,7 +125,7 @@ def iso_axis_ratio(iso_hal, distribution=True):
 
     for n in range(len(iso_hal['iso_coords'])):
         coords = iso_hal['iso_coords'][n]
-        sat_axes = ut.coordinate.get_principal_axes(coords)
+        sat_axes = ut.coordinate.get_principal_axes(coords, verbose=verbose)
         iter_ratios[n] = sat_axes[2][0]
 
     if distribution:

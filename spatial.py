@@ -42,7 +42,8 @@ def ad_test_distance(
     return {'MW':[ad_mw[0], ad_mw[1], ad_mw[2]], 'M31':[ad_m31[0], ad_m31[1], ad_m31[2]]}
 
 @jit
-def get_satellite_principal_axes(hal, hal_mask=None, host_str='host.', mass_kind=None):
+def get_satellite_principal_axes(
+    hal, hal_mask=None, host_str='host.', mass_kind=None, verbose=False):
     '''
     Find the inertia tensor and maj/med/min axes of the satellite distribution
     (hal) that meets the criteria of (hal_mask).
@@ -52,12 +53,12 @@ def get_satellite_principal_axes(hal, hal_mask=None, host_str='host.', mass_kind
     # ut.coordinate.get_principal_axes returns: eigen_vectors, eigen_values, axis_ratios
     if mass_kind == None:
         # use this if you only care about geometric distribution
-        moi_quantities = ut.coordinate.get_principal_axes(distance_vectors)
+        moi_quantities = ut.coordinate.get_principal_axes(distance_vectors, verbose=verbose)
 
     else:
         # use this if you want to weight positions by mass or another property
         mass = hal.prop(mass_kind)[hal_mask]
-        moi_quantities = ut.coordinate.get_principal_axes(distance_vectors, mass)
+        moi_quantities = ut.coordinate.get_principal_axes(distance_vectors, mass, verbose=verbose)
 
     return moi_quantities
 

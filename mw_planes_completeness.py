@@ -164,14 +164,14 @@ def rand_angle_width(
 @jit
 def axis_ratio(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    host_axes_dict=None, disk_mask_angle=12.0):
+    host_axes_dict=None, disk_mask_angle=12.0, verbose=False):
     '''
     Get the axis ratio (minor/major) for the disk-masked distribution of 
     satellites.
     '''
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
     sat_masked_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle=disk_mask_angle)
-    sat_axes = ut.coordinate.get_principal_axes(sat_masked_coords)
+    sat_axes = ut.coordinate.get_principal_axes(sat_masked_coords, verbose=verbose)
 
     return sat_axes[2][0]
 

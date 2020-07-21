@@ -923,7 +923,9 @@ def plot_group_frac_correlation(
                   'opening.angle':'Opening angle [deg]',
                   'rms.min':'RMS thickness [kpc]',
                   'orbital.pole.dispersion':'Orbital pole dispersion [deg]',
-                  'largest.sat.group.fracs':'Fraction of z=0 sats. in largest groups at infall'}
+                  'largest.sat.group.fracs':'Fraction of z=0 sats. in largest groups at infall',
+                  'largest.group.fracs':'Fraction of z=0 satellites',
+                  'group.fracs':'Fraction of z=0 satellites'}
     plt.ylabel(label_dict[table_metric], fontsize=20)
     plt.xlabel(label_dict[frac_key], fontsize=18)
     plt.legend(loc=4, fontsize=18)
@@ -933,7 +935,7 @@ def plot_group_frac_correlation(
     print('pearson correlation coefficient = ', np.corrcoef(med_fracs, med_probs))
     print('spearman correlation coefficient = ', spearmanr(med_fracs, med_probs))
 
-    return fig
+    #return fig
 
 def lmc_correlation(
     host_table, grouped_table, y_type, y_label=None, redshift_limit=0.2):
