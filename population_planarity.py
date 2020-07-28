@@ -1079,4 +1079,3 @@ def plot_norm_to_isotropic(
     plt.xlabel('redshift [z]', fontsize=16)
     plt.ylabel(y_type+' relative to isotropic', fontsize=16)
     plt.show()
-

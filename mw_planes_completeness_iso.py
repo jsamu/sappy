@@ -28,8 +28,8 @@ def loop_iso(sat, mask_key, exec_func, **kwargs):
     return loop_dict
 
 def select_out_of_disk(
-    sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle=12.0,
-    return_mask=False):
+    sat_coords, host_axes_dict=None, host_name=None, snapshot_index=None, 
+    disk_mask_angle=12.0, return_mask=False):
     if 'm12' in host_name:
         disk_axes = host_axes_dict[host_name][0][snapshot_index]
     else:
@@ -57,11 +57,13 @@ def rand_iso_rms_min(
     all_iso_coords = np.reshape(iso_hal['iso_coords'], (n_iter*n_sat, 3))
 
     # get a disk mask of dimension (n_iter, n_sat)
-    iso_disk_mask_k = np.zeros((n_iter, n_sat))
-    for i,iso_sat_coords_i in enumerate(n_sat):
+    iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
+    for i,iso_sat_coords_i in enumerate(iso_hal['iso_coords']):
         # apply disk mask
-        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, host_axes_dict, 
-                                                                host_name, snapshot_index,
+        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, 
+                                                                host_axes_dict=host_axes_dict, 
+                                                                host_name=host_name, 
+                                                                snapshot_index=snapshot_index,
                                                                 disk_mask_angle=disk_mask_angle, 
                                                                 return_mask=True)
         # store the disk mask for each isotropic iteration
@@ -71,26 +73,32 @@ def rand_iso_rms_min(
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_iso_coords, rotation_tensor=axes)
         sat_prime_coords = np.reshape(sat_prime_coords, (n_iter, n_sat, 3))
         # get rms height masking out those satellites obscured by the host disk
-        rms_minor_k[k] = np.sqrt(np.nanmean((sat_prime_coords[:,:,2][iso_disk_mask_k[k]])**2, axis=1))
-        rms_major_k[k] = np.sqrt(np.nanmean((sat_prime_coords[:,:,0][iso_disk_mask_k[k]])**2, axis=1))
+        # stack 3 copies of iso disk mask for all 3 coordinates
+        iso_disk_mask_k_stack = np.dstack([iso_disk_mask_k, iso_disk_mask_k, iso_disk_mask_k])
+        # create a copy of the prime coords array with the disk masked entries replaced by nan's
+        sat_prime_coords_masked = np.where(iso_disk_mask_k_stack, sat_prime_coords, np.nan)
+        rms_minor_k[k] = np.sqrt(np.nanmean((sat_prime_coords_masked[:,:,2])**2, axis=1))
+        rms_major_k[k] = np.sqrt(np.nanmean((sat_prime_coords_masked[:,:,0])**2, axis=1))
+        #rms_minor_k[k] = np.sqrt(np.nanmean((sat_prime_coords[:,:,2][iso_disk_mask_k])**2, axis=1))
+        #rms_major_k[k] = np.sqrt(np.nanmean((sat_prime_coords[:,:,0][iso_disk_mask_k])**2, axis=1))
 
     rms_minor_n = np.min(rms_minor_k, axis=0)
-    rms_major_n = np.zeros(n_iter)
+    #rms_major_n = np.zeros(n_iter)
     for i in range(n_iter):
         rms_minor_i = np.min(rms_minor_k[i])
-        min_index = np.where(rms_minor_k[i] == np.min(rms_minor_i))[0][0]
-        rms_major_n[i] = rms_major_k[i][min_index]
+        #min_index = np.where(rms_minor_k[i] == np.min(rms_minor_i))[0][0]
+        #rms_major_n[i] = rms_major_k[i][min_index]
 
-    if return_parallel is True:
-        if distribution:
-            return {'rms_minor':rms_minor_n, 'rms_major':rms_major_n}
-        else:
-            return {'rms_minor':np.nanmean(rms_minor_n), 'rms_major':np.nanmean(rms_major_n)}
+    #if return_parallel is True:
+    #    if distribution:
+    #        return {'rms_minor':rms_minor_n, 'rms_major':rms_major_n}
+    #    else:
+    #        return {'rms_minor':np.nanmean(rms_minor_n), 'rms_major':np.nanmean(rms_major_n)}
+    #else:
+    if distribution:
+        return rms_minor_n
     else:
-        if distribution:
-            return rms_minor_n
-        else:
-            return np.nanmean(rms_minor_n)
+        return np.nanmean(rms_minor_n)
 
 def rand_angle(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
