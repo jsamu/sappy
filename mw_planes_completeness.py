@@ -92,11 +92,6 @@ def rand_rms_min(
         rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
 
     min_rms_minor = np.nanmin(rms_minor_n)
-    # catch an all-nan (totally disk masked) instance
-    try:
-        min_index = np.where(rms_minor_n == np.nanmin(rms_minor_n))[0][0]
-    except:
-        min_index = np.nan
     if return_ax is True:
         try:
             rms_major = rms_major_n[min_index]
