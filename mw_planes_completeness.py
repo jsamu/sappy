@@ -60,7 +60,6 @@ def select_out_of_disk(
     else:
         return sat_coords[disk_mask]
 
-@jit
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
     n_iter=None, r_frac=None, radius_bins=None, return_ax=False, 
@@ -134,7 +133,6 @@ def rand_angle(
 
     return np.array(open_angle_n), rot_vecs, rot_mats
 
-@jit
 def rand_angle_width(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
     n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
@@ -167,7 +165,6 @@ def rand_angle_width(
     else:
         return phi_width
 
-@jit
 def axis_ratio(
     hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
     host_axes_dict=None, disk_mask_angle=12.0, verbose=False):

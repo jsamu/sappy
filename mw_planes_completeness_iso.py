@@ -62,7 +62,6 @@ def get_iso_disk_mask(
 
     return iso_disk_mask_k
 
-@jit(no_python=False)
 def rand_iso_rms_min(
     iso_hal, r_bins=None, n_iter=None, distribution=True, host_name=None, 
     snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
@@ -113,7 +112,6 @@ def rand_iso_rms_min(
     else:
         return np.nanmean(rms_minor_n)
 
-@jit
 def iso_rand_angle_width(
     iso_hal, threshold_fraction=1.0, n_iter=None, angle_range=None,
     angle_width=None, host_name=None, snapshot_index=None, host_axes_dict=None, 
@@ -155,7 +153,6 @@ def iso_rand_angle_width(
 
     return phi_width_n
 
-@jit
 def iso_axis_ratio(
     iso_hal, distribution=True, verbose=False, host_name=None, 
     snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
