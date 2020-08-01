@@ -44,6 +44,24 @@ def select_out_of_disk(
     else:
         return sat_coords[disk_mask]
 
+def get_iso_disk_mask(
+    iso_sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle):
+    # get a disk mask of dimension (n_iter, n_sat)
+    n_iter, n_sat = iso_sat_coords.shape
+    iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
+    for i, iso_sat_coords_i in enumerate(iso_sat_coords):
+        # apply disk mask
+        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, 
+                                                                host_axes_dict=host_axes_dict, 
+                                                                host_name=host_name, 
+                                                                snapshot_index=snapshot_index,
+                                                                disk_mask_angle=disk_mask_angle, 
+                                                                return_mask=True)
+        # store the disk mask for each isotropic iteration
+        iso_disk_mask_k[i] = iso_disk_mask
+
+    return iso_disk_mask_k
+
 @jit
 def rand_iso_rms_min(
     iso_hal, r_bins=None, n_iter=None, distribution=True, host_name=None, 
@@ -57,6 +75,12 @@ def rand_iso_rms_min(
     all_iso_coords = np.reshape(iso_hal['iso_coords'], (n_iter*n_sat, 3))
 
     # get a disk mask of dimension (n_iter, n_sat)
+    iso_disk_mask_k = get_iso_disk_mask(iso_hal['iso_coords'], 
+                                        host_axes_dict=host_axes_dict, 
+                                        host_name=host_name, 
+                                        snapshot_index=snapshot_index,
+                                        disk_mask_angle=disk_mask_angle)
+    """
     iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
     for i,iso_sat_coords_i in enumerate(iso_hal['iso_coords']):
         # apply disk mask
@@ -68,7 +92,7 @@ def rand_iso_rms_min(
                                                                 return_mask=True)
         # store the disk mask for each isotropic iteration
         iso_disk_mask_k[i] = iso_disk_mask
-
+    """
     for k,axes in enumerate(rot_vecs):
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_iso_coords, rotation_tensor=axes)
         sat_prime_coords = np.reshape(sat_prime_coords, (n_iter, n_sat, 3))
@@ -109,17 +133,11 @@ def iso_rand_angle_width(
         angle_array[j] = np.full(n_iter, opening_angle)
 
     # get a disk mask of dimension (n_iter, n_sat)
-    iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
-    for i,iso_sat_coords_i in enumerate(iso_hal['iso_coords']):
-        # apply disk mask
-        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, 
-                                                                host_axes_dict=host_axes_dict, 
-                                                                host_name=host_name, 
-                                                                snapshot_index=snapshot_index,
-                                                                disk_mask_angle=disk_mask_angle, 
-                                                                return_mask=True)
-        # store the disk mask for each isotropic iteration
-        iso_disk_mask_k[i] = iso_disk_mask
+    iso_disk_mask_k = get_iso_disk_mask(iso_hal['iso_coords'], 
+                                        host_axes_dict=host_axes_dict, 
+                                        host_name=host_name, 
+                                        snapshot_index=snapshot_index,
+                                        disk_mask_angle=disk_mask_angle)
     
     for k,axes in enumerate(rand_axes):
         snap_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_snap_coords, rotation_tensor=axes)
@@ -137,113 +155,57 @@ def iso_rand_angle_width(
 
     return phi_width_n
 
-def rand_angle(
-    hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    n_iter=1000, host_axes_dict=None, disk_mask_angle=12.0):
-    '''
-    Calculates opening angles off of a set of randomly/isotropicallly generated
-    axes (for sat.n_iter realizations).
-    Returns opening angles, the vectors that the original axes are rotated by,
-    and the rotation matrix that performs the rotations.
-    '''
-    sat_coords = hal.prop(host_str+'distance')[hal_mask]
-    rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
-    open_angle_n = []
-
-    # apply disk mask
-    sat_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index,
-                                    disk_mask_angle=disk_mask_angle)
-
-    for n in range(n_iter):
-        sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vecs[n])
-        tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
-        open_angle_n.append(np.degrees(np.arctan(tangent_of_open_angle)))
-
-    return np.array(open_angle_n), rot_vecs, rot_mats
-
 @jit
-def rand_angle_width(
-    hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    n_iter=1000, fraction=1.0, angle_range=None, return_ax=False,
-    host_axes_dict=None, disk_mask_angle=12.0):
+def iso_axis_ratio(
+    iso_hal, distribution=True, verbose=False, host_name=None, 
+    snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
     '''
-    Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
-    realizations. Finds the angle off of the simulation x-axis that encloses a given
-    fraction of the satellites, and then gets the minimum of this angle across all
-    random realizations for each host halo at each redshift.
+    Calculate the minor to major axis ratio using the MOI tensor at each redshift
+    for each host halo's isotropic satellite coordinates.
     '''
-    rand_angles, rand_axes, rand_mats = rand_angle(hal, hal_mask=hal_mask, 
-        host_str=host_str, host_name=host_name, snapshot_index=snapshot_index,
-        n_iter=n_iter, host_axes_dict=host_axes_dict, disk_mask_angle=disk_mask_angle)
-    phi_width_n = np.zeros(n_iter)
+    # get a disk mask of dimension (n_iter, n_sat)
+    iso_disk_mask = get_iso_disk_mask(iso_hal['iso_coords'], 
+                                        host_axes_dict=host_axes_dict, 
+                                        host_name=host_name, 
+                                        snapshot_index=snapshot_index,
+                                        disk_mask_angle=disk_mask_angle)
 
-    for n, snap_angles_n in enumerate(rand_angles):
-        if snap_angles_n.size == 0:
-            phi_width_n[n] = np.nan
-        else:
-            phi_width_n = ra.optim_open_angle(snap_angles_n, angle_range, fraction, phi_width_n, n)
+    iter_ratios = np.zeros(len(iso_hal['iso_coords']))
 
-    phi_width = np.nanmin(phi_width_n)
-    min_index = np.where(phi_width_n == np.nanmin(phi_width_n))[0][0]
+    for n in range(len(iso_hal['iso_coords'])):
+        coords = iso_hal['iso_coords'][n][iso_disk_mask[n]]
+        sat_axes = ut.coordinate.get_principal_axes(coords, verbose=verbose)
+        iter_ratios[n] = sat_axes[2][0]
 
-    # return just the vector normal to the plane
-    min_ax = rand_axes[min_index][2]
-
-    if return_ax is True:
-        return {'angle':phi_width, 'ax':min_ax}
+    if distribution:
+        return iter_ratios
     else:
-        return phi_width
+        return np.average(iter_ratios)
 
-@jit
-def axis_ratio(
-    hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None, 
-    host_axes_dict=None, disk_mask_angle=12.0):
-    '''
-    Get the axis ratio (minor/major) for the disk-masked distribution of 
-    satellites.
-    '''
-    sat_coords = hal.prop(host_str+'distance')[hal_mask]
-    sat_masked_coords = select_out_of_disk(sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle=disk_mask_angle)
-    sat_axes = ut.coordinate.get_principal_axes(sat_masked_coords)
-
-    return sat_axes[2][0]
-
-def orbital_ang_momentum(
-    hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
-    norm=False, host_axes_dict=None, disk_mask_angle=12.0):
-    '''
-    Compute mass-agnostic orbital angular momentum as L=(v)x(r) where the
-    vectors are defined with respect to the central host halo. Returned value
-    has units of kpc^2/s.
-    '''
-    sat_coords = hal.prop(host_str+'distance')[hal_mask]#*ut.basic.constant.km_per_kpc
-    position_masked, disk_mask = select_out_of_disk(sat_coords, host_axes_dict, 
-        host_name, snapshot_index, return_mask=True, disk_mask_angle=disk_mask_angle)
-    velocity = hal.prop(host_str+'velocity')[hal_mask]*ut.basic.constant.kpc_per_km
-    velocity_masked = velocity[disk_mask]
-    if norm is True:
-        ang_momentum = np.array([np.cross(x,v)/np.linalg.norm(np.cross(x,v)) for x, v in zip(position_masked, velocity_masked)])
-    elif norm is False:
-        ang_momentum = np.array([np.cross(x,v) for x, v in zip(position_masked, velocity_masked)])
-
-    return ang_momentum
-
-def orbital_pole_dispersion(
-    hal, hal_mask=None, host_str='host.', host_name=None, snapshot_index=None,
-    host_axes_dict=None, disk_mask_angle=12.0):
+def iso_orbital_pole_dispersion(iso_hal, n_iter=None, host_name=None, 
+    snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
     '''
     Calculate the angular dispersion [deg] of satellite orbital poles around
-    their mean orbital pole.
+    their mean orbital pole for isotropic unit velocities."
     '''
-    if np.sum(hal_mask) == 0:
-        pole_disp = np.nan
-        avg_j_vec = np.array([np.nan, np.nan, np.nan])
-    else:
-        j_vec = orbital_ang_momentum(hal, hal_mask, host_str, host_name, 
-            snapshot_index, norm=True, host_axes_dict=host_axes_dict, disk_mask_angle=disk_mask_angle)
-        avg_j_vec = np.mean(j_vec, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(j_vec, axis=0))
-        avg_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec]) 
-        pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))
-        pole_disp = np.degrees(pole_disp)
+    # get a disk mask of dimension (n_iter, n_sat)
+    iso_disk_mask = get_iso_disk_mask(iso_hal['iso_coords'], 
+                                        host_axes_dict=host_axes_dict, 
+                                        host_name=host_name, 
+                                        snapshot_index=snapshot_index,
+                                        disk_mask_angle=disk_mask_angle)
 
-    return {'orbital.pole.dispersion':pole_disp, 'average.orbital.pole':avg_j_vec}
+    pole_disp_n = np.zeros(n_iter)
+    for n in range(n_iter):
+        iso_vels = iso_hal['iso_vels'][n][iso_disk_mask[n]]
+        iso_coords = iso_hal['iso_coords'][n][iso_disk_mask[n]]
+        if len(iso_vels) == 0:
+            pole_disp_n[n] = np.nan
+        else:
+            j_vec = np.array([np.cross(x,v)/np.linalg.norm(np.cross(x,v)) for x, v in zip(iso_coords, iso_vels)])
+            avg_j_vec = np.mean(j_vec, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(j_vec, axis=0))
+            avg_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec]) 
+            pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))
+            pole_disp_n[n] = np.degrees(pole_disp)
+
+    return pole_disp_n
