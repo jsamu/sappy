@@ -62,7 +62,7 @@ def get_iso_disk_mask(
 
     return iso_disk_mask_k
 
-@jit
+@jit(no_python=False)
 def rand_iso_rms_min(
     iso_hal, r_bins=None, n_iter=None, distribution=True, host_name=None, 
     snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
