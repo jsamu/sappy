@@ -47,7 +47,7 @@ def select_out_of_disk(
 def get_iso_disk_mask(
     iso_sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle):
     # get a disk mask of dimension (n_iter, n_sat)
-    n_iter, n_sat = iso_sat_coords.shape
+    n_iter, n_sat, dims = iso_sat_coords.shape
     iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
     for i, iso_sat_coords_i in enumerate(iso_sat_coords):
         # apply disk mask
