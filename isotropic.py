@@ -305,13 +305,12 @@ def iso_rand_angle_width(
 @jit
 def optim_open_angle(
     snap_angles, angle_range, threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array):
-    #frac_enclosed = np.array([0])
     for j,opening_angle in enumerate(angle_range):
         angle_mask = (snap_angles <= opening_angle) & (snap_angles >= -opening_angle)
-        frac_enclosed = np.sum(angle_mask, axis=1)/n_sat
+        frac_enclosed = np.nansum(angle_mask, axis=1)/n_sat
         frac_enclosed_range[j] = frac_enclosed
 
-    min_encl_angles = np.where(frac_enclosed_range>=threshold_fraction, angle_array, nan_array)
+    min_encl_angles = np.where(frac_enclosed_range >= threshold_fraction, angle_array, nan_array)
     phi_width = 2*np.nanmin(min_encl_angles, axis=0)
 
     return phi_width

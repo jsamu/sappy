@@ -35,6 +35,7 @@ def select_out_of_disk(
     else:
         disk_axes = host_axes_dict[host_name][snapshot_index]
     # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
+    # mask is true where satellites are unobscured
     sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
     tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
     disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
@@ -124,9 +125,8 @@ def iso_rand_angle_width(
     all_snap_coords = np.reshape(iso_coords, (n_iter*n_sat, 3))
     frac_enclosed_range = np.zeros((len(angle_range), n_iter))
     nan_array = np.full(frac_enclosed_range.shape, np.nan)
-    angle_array = np.zeros(frac_enclosed_range.shape)
     phi_width_k = np.zeros((n_iter, n_iter))
-    
+    angle_array = np.zeros(frac_enclosed_range.shape)
     for j,opening_angle in enumerate(angle_range):
         angle_array[j] = np.full(n_iter, opening_angle)
 
@@ -149,7 +149,7 @@ def iso_rand_angle_width(
         phi_width_k[k] = iso.optim_open_angle(snap_angles_n_masked, angle_range, 
             threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array)
 
-    phi_width_n = np.min(phi_width_k, axis=0)
+    phi_width_n = np.nanmin(phi_width_k, axis=0)
 
     return phi_width_n
 
@@ -177,7 +177,7 @@ def iso_axis_ratio(
     if distribution:
         return iter_ratios
     else:
-        return np.average(iter_ratios)
+        return np.nanmean(iter_ratios)
 
 def iso_orbital_pole_dispersion(iso_hal, n_iter=None, host_name=None, 
     snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
