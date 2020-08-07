@@ -305,16 +305,6 @@ def mask_hal_dmo(hal, sat, hal_name, redshift_index, mask_keys):
             v_mask_const = hal['vel.circ.max.fbcorr'] >= sat.vel_circ_max
             combined_mask = host_mask & mask_distance & mask_lowres_fraction & v_mask_const & bound_mask
 
-        elif mask_key == 'most.massive':
-            base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
-            base_ind = np.where(base_mask)[0]
-            base_vmax = hal['mass.fbcorr'][base_ind]
-
-            top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
-            top_n_ind = base_ind[top_n_base_vmax_ind]
-            combined_mask = np.zeros(len(hal['mass.fbcorr']), dtype=bool)
-            combined_mask[top_n_ind] = True
-
         elif mask_key == 'v.peak':
             base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
             base_ind = np.where(base_mask)[0]
@@ -334,6 +324,16 @@ def mask_hal_dmo(hal, sat, hal_name, redshift_index, mask_keys):
             combined_mask = np.zeros(len(hal['vel.circ.peak.fbcorr']), dtype=bool)
             combined_mask[top_n_ind] = True
 
+        elif mask_key == 'most.massive':
+            base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
+            base_ind = np.where(base_mask)[0]
+            base_vmax = hal['mass.fbcorr'][base_ind]
+
+            top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
+            top_n_ind = base_ind[top_n_base_vmax_ind]
+            combined_mask = np.zeros(len(hal['mass.fbcorr']), dtype=bool)
+            combined_mask[top_n_ind] = True
+
         elif mask_key == 'mass.peak':
             base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
             base_ind = np.where(base_mask)[0]
@@ -342,6 +342,16 @@ def mask_hal_dmo(hal, sat, hal_name, redshift_index, mask_keys):
             m_peak_ind = base_ind[m_peak_mask]
             combined_mask = np.zeros(len(hal['mass.peak.fbcorr']), dtype=bool)
             combined_mask[m_peak_ind] = True
+
+        elif mask_key == 'most.mass.peak':
+            base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
+            base_ind = np.where(base_mask)[0]
+            base_vmax = hal['mass.peak.fbcorr'][base_ind]
+
+            top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
+            top_n_ind = base_ind[top_n_base_vmax_ind]
+            combined_mask = np.zeros(len(hal['mass.peak.fbcorr']), dtype=bool)
+            combined_mask[top_n_ind] = True
 
         elif mask_key == 'mass.bound':
             base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
@@ -411,13 +421,6 @@ def mask_lg_dmo_cat(sat):
                         v_mask_med = hal['vel.circ.max.fbcorr'] >= sat.med_v_circ[redshift_index]
                         combined_mask = base_mask & v_mask_med
 
-                    elif dmo_key == 'most.massive':
-                        base_vmax = hal['mass.fbcorr'][base_ind]
-                        top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
-                        top_n_ind = base_ind[top_n_base_vmax_ind]
-                        combined_mask = np.zeros(len(hal['mass.fbcorr']), dtype=bool)
-                        combined_mask[top_n_ind] = True
-
                     elif dmo_key == 'vel.circ.max':
                         v_mask_const = hal['vel.circ.max.fbcorr'] >= sat.vel_circ_max
                         combined_mask = base_mask & v_mask_const
@@ -436,12 +439,26 @@ def mask_lg_dmo_cat(sat):
                         combined_mask = np.zeros(len(hal['vel.circ.peak.fbcorr']), dtype=bool)
                         combined_mask[top_n_ind] = True
 
+                    elif dmo_key == 'most.massive':
+                        base_vmax = hal['mass.fbcorr'][base_ind]
+                        top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
+                        top_n_ind = base_ind[top_n_base_vmax_ind]
+                        combined_mask = np.zeros(len(hal['mass.fbcorr']), dtype=bool)
+                        combined_mask[top_n_ind] = True
+
                     elif dmo_key == 'mass.peak':
                         #m_peak_arr = kin.v_peak(hal, hal_mask=base_mask, hal_property='mass')
                         m_peak_mask = hal['mass.peak.fbcorr'][base_ind] > sat.mass_peak
                         m_peak_ind = base_ind[m_peak_mask]
                         combined_mask = np.zeros(len(hal['mass.peak.fbcorr']), dtype=bool)
                         combined_mask[m_peak_ind] = True
+
+                    elif dmo_key == 'most.mass.peak':
+                        base_vmax = hal['mass.peak.fbcorr'][base_ind]
+                        top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
+                        top_n_ind = base_ind[top_n_base_vmax_ind]
+                        combined_mask = np.zeros(len(hal['mass.peak.fbcorr']), dtype=bool)
+                        combined_mask[top_n_ind] = True
 
                     redshift_mask_dict[dmo_key] = combined_mask
                 host_mask_dict[host_name].append(redshift_mask_dict)
