@@ -95,12 +95,13 @@ def histogram_planar_intervals2(
         grouped_table_list, y_type_list, threshold_value_list):
         
         print(y_type)
-
+        total_snaps_below = 0
         # finding t_corr intervals, lengths of time that planarity falls
         # below a set threshold
         t_corr = {}
         for i,(host_key,host_group) in enumerate(grouped_table):      
             below_thresh_indices = np.where(host_group[y_type] <= threshold_value)[0]
+            total_snaps_below += np.nansum(host_group[y_type] <= threshold_value)
 
             times_below_threshold = np.full(len(host_group[y_type]), -1.0)
             for j in below_thresh_indices:
@@ -160,7 +161,8 @@ def histogram_planar_intervals2(
             #print(host, 'significant intervals of planarity in Gyr =', t_corr[host][t_corr[host] >= 1])
 
         print('total number of hosts with planarity:', len(hosts_with_planarity), hosts_with_planarity)
-        print('total number of time intervals with planarity:', len(all_t_corr))    
+        print('total number of time intervals with planarity:', len(all_t_corr))  
+        print('total snapshots with planarity:', total_snaps_below)  
         try:
             print('min time interval =', np.min(all_t_corr), 'max time interval =', np.max(all_t_corr))
             t_bins = np.arange(0,np.max(all_t_corr)+t_bin_width,t_bin_width)
