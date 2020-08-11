@@ -221,7 +221,7 @@ def mask_hal_baryonic(hal, sat, mask_keys):
             combined_mask[top_n_ind] = True
 
         elif mask_key == 'most.massive':
-            #choosing top 11 most massive sats
+            #choosing top N most massive sats
             base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
             base_ind = np.where(base_mask)[0]
             base_sm = hal['mass'][base_ind]
@@ -229,15 +229,6 @@ def mask_hal_baryonic(hal, sat, mask_keys):
             top_n_ind = base_ind[top_n_base_sm_ind]
             combined_mask = np.zeros(len(hal['mass']), dtype=bool)
             combined_mask[top_n_ind] = True
-
-        elif mask_key == 'v.peak':
-            base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
-            base_ind = np.where(base_mask)[0]
-            v_peak_arr = kin.v_peak(hal, hal_mask=base_mask)
-            v_peak_mask = v_peak_arr > sat.v_peak
-            v_peak_ind = base_ind[v_peak_mask]
-            combined_mask = np.zeros(len(hal['vel.circ.max']), dtype=bool)
-            combined_mask[v_peak_ind] = True
 
         elif mask_key == 'mass.peak':
             base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
@@ -251,6 +242,24 @@ def mask_hal_baryonic(hal, sat, mask_keys):
             base_mask = host_mask & mask_distance & mask_lowres_fraction & bound_mask
             bound_mask_ = hal.prop('mass.bound') > sat.m_bound
             combined_mask = base_mask & bound_mask_
+
+        elif mask_key == 'v.peak':
+            base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
+            base_ind = np.where(base_mask)[0]
+            v_peak_arr = kin.v_peak(hal, hal_mask=base_mask)
+            v_peak_mask = v_peak_arr > sat.v_peak
+            v_peak_ind = base_ind[v_peak_mask]
+            combined_mask = np.zeros(len(hal['vel.circ.max']), dtype=bool)
+            combined_mask[v_peak_ind] = True
+
+        elif mask_key == 'most.v.peak':
+            base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
+            base_ind = np.where(base_mask)[0]
+            base_sm = hal['vel.circ.peak'][base_ind]
+            top_n_base_sm_ind = np.argsort(base_sm)[-sat.abs_number:]
+            top_n_ind = base_ind[top_n_base_sm_ind]
+            combined_mask = np.zeros(len(hal['vel.circ.peak']), dtype=bool)
+            combined_mask[top_n_ind] = True
 
         else:
             raise ValueError('Halo catalog mask key ({}) not recognized'.format(mask_key))
@@ -535,12 +544,6 @@ def mask_lg_baryon_cat(sat):
                         combined_mask = np.zeros(len(hal['mass']), dtype=bool)
                         combined_mask[top_n_ind] = True
 
-                    elif mask_key == 'vel.circ.max':
-                        base_mask = host_mask & lowres_mask & distance_mask & bound_mask
-                        base_ind = np.where(base_mask)[0]
-                        v_mask_const = hal['vel.circ.max'] >= sat.vel_circ_max
-                        combined_mask = base_mask & v_mask_const
-
                     elif mask_key == 'mass.peak':
                         base_mask = host_mask & lowres_mask & distance_mask & bound_mask
                         base_ind = np.where(base_mask)[0]
@@ -548,6 +551,21 @@ def mask_lg_baryon_cat(sat):
                         m_peak_ind = base_ind[m_peak_mask]
                         combined_mask = np.zeros(len(hal['mass.peak']), dtype=bool)
                         combined_mask[m_peak_ind] = True
+
+                    elif mask_key == 'vel.circ.max':
+                        base_mask = host_mask & lowres_mask & distance_mask & bound_mask
+                        base_ind = np.where(base_mask)[0]
+                        v_mask_const = hal['vel.circ.max'] >= sat.vel_circ_max
+                        combined_mask = base_mask & v_mask_const
+
+                    elif mask_key == 'most.v.peak':
+                        base_mask = host_mask & lowres_mask & distance_mask & bound_mask
+                        base_ind = np.where(base_mask)[0]
+                        base_vmax = hal['vel.circ.peak'][base_ind]
+                        top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
+                        top_n_ind = base_ind[top_n_base_vmax_ind]
+                        combined_mask = np.zeros(len(hal['vel.circ.peak']), dtype=bool)
+                        combined_mask[top_n_ind] = True
 
                     else:
                         print('no mask available')
