@@ -215,7 +215,8 @@ class SatelliteHalo(SatParam):
         radius_limit=None, host_number=1, observation_dir=None,
         vel_circ_max_lim=None, v_peak=None, mass_peak=None, mass_bound=None,
         assign_species=True, radius_limits=None, radius_bin_width=None, 
-        number_sats=None, time_info_file_path=None, redshift_limits=None):
+        number_sats=None, time_info_file_path=None, redshift_limits=None,
+        file_kind='hdf5'):
         """
         Parameters
         ----------
@@ -316,25 +317,25 @@ class SatelliteHalo(SatParam):
         if host_number > 1:
             # Local Group simulations
             if dmo:
-                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, baryon_frac=True)
+                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, baryon_frac=True, file_kind=file_kind)
                 #if baryon_sat is not None:
                 #    self.num_sats = spa.total_sats(self, baryon_sat, mask_key='star.mass', radius=self.r_range[1])
                 #    self.med_v_circ = kin.med_velcircmax_z0(baryon_sat, mask_key='star.mass')
                 self.catalog_mask = sio.mask_lg_dmo_cat(self)
             else:
                 self.hal_catalog = sio.load_hals(directory_list, self.snapshot, 
-                    self.hal_name, host_number=host_number, assign_species=assign_species)
+                    self.hal_name, host_number=host_number, assign_species=assign_species, file_kind=file_kind)
                 self.catalog_mask = sio.mask_lg_baryon_cat(self)
 
         else:
             # m12/isolated Milky Way simulations
             if dmo:
-                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, baryon_frac=True)
+                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, baryon_frac=True, file_kind=file_kind)
                 #if baryon_sat is not None:
                 #    self.num_sats = spa.total_sats(self, baryon_sat, mask_key='star.mass', radius=self.r_range[1])
                 #    self.med_v_circ = kin.med_velcircmax_z0(baryon_sat, mask_key='star.mass')
             else:
-                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name)
+                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, file_kind=file_kind)
 
             # generate masks
             self.catalog_mask = sio.mask_catalogs(self, mask_keys=mask_names, dmo=dmo)

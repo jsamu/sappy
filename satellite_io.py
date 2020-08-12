@@ -1,16 +1,12 @@
-from matplotlib import pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
 import numpy as np
 from numba import jit
 import math
 import utilities as ut
 import halo_analysis as halo
 from collections import defaultdict
-from satellite_analysis import halo_reader as hr
 from satellite_analysis import isotropic as iso
 from satellite_analysis import observation as obs
 from satellite_analysis import kinematics as kin
-
 
 ###########################################
 ### load halo catalogs and merger trees ###
@@ -24,17 +20,20 @@ def load_hals(
     is a list of halo catalogs at the specified redshifts for a certain
     host halo.
     '''
+    if assign_species is True:
+        species_ = ['star']
     hal_dict = {}
     for directory, name in zip(sim_directories, sim_names):
         if type(snapshot_index) is int:
             # format a single snapshot as a list for consistency
             snap_list = [halo.io.IO.read_catalogs(snapshot_value_kind='index',
                 snapshot_values=snapshot_index, simulation_directory=directory, 
-                file_kind=file_kind, host_number=host_number, assign_species=assign_species)]
+                file_kind=file_kind, host_number=host_number, species=species_)]
         else:
+            snapshot_index = np.array(snapshot_index).astype(int)
             snap_list = halo.io.IO.read_catalogs(snapshot_value_kind='index',
                 snapshot_values=snapshot_index, simulation_directory=directory, 
-                file_kind=file_kind, host_number=host_number, assign_species=assign_species)
+                file_kind=file_kind, host_number=host_number, species=species_)
             # grab one snapshot/catalog to get indices from
             snap_list = [snap_list[snap_index] for snap_index in snapshot_index]
 
