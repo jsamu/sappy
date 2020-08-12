@@ -83,12 +83,14 @@ def load_trees(
         objects loaded in by the halo_analysis package. merger_tree may be modified
         if prop_subset is specified.
     """
+    if assign_species is True:
+        species_ = ['star']
     tree_dict = {}
     for directory, name in zip(sim_directories, sim_names):
         tree = halo.io.IO.read_tree(simulation_directory=directory,
-                                        host_number=host_number,
-                                        assign_species=assign_species,
-                                        species_snapshot_indices=snapshot_ind)
+                                    host_number=host_number,
+                                    species=species_,
+                                    species_snapshot_indices=snapshot_ind)
 
         if dmo is True:
             fb_correction = 1 - tree.Cosmology['baryon.fraction']
