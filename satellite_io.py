@@ -42,10 +42,11 @@ def load_hals(
             for snap_dict in snap_list:
                 fb_correction = 1 - snap_dict.Cosmology['baryon.fraction']
                 snap_dict['vel.circ.max.fbcorr'] = snap_dict['vel.circ.max']*np.sqrt(fb_correction)
-                snap_dict['vel.circ.peak.fbcorr'] = snap_dict['vel.circ.peak']*np.sqrt(fb_correction)
                 snap_dict['mass.fbcorr'] = snap_dict['mass']*fb_correction
                 snap_dict['mass.bound.fbcorr'] = snap_dict['mass.bound']*fb_correction
-                snap_dict['mass.peak.fbcorr'] = snap_dict['mass.peak']*fb_correction
+                if file_kind == 'hdf5':
+                    snap_dict['vel.circ.peak.fbcorr'] = snap_dict['vel.circ.peak']*np.sqrt(fb_correction)
+                    snap_dict['mass.peak.fbcorr'] = snap_dict['mass.peak']*fb_correction
 
         hal_dict[name] = snap_list
 
