@@ -35,7 +35,7 @@ def select_out_of_disk(
     else:
         disk_axes = host_axes_dict[host_name][snapshot_index]
     # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
-    # mask is true where satellites are unobscured
+    # mask is True where satellites are unobscured
     sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
     tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
     disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
@@ -68,7 +68,7 @@ def rand_iso_rms_min(
     snapshot_index=None, host_axes_dict=None, disk_mask_angle=12.0):
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
     rms_minor_k = np.zeros((n_iter, n_iter))
-    rms_major_k = np.zeros((n_iter, n_iter))
+    #rms_major_k = np.zeros((n_iter, n_iter))
 
     # variables defined for optimization
     n_sat = len(iso_hal['iso_coords'][0])
@@ -80,20 +80,9 @@ def rand_iso_rms_min(
                                         host_name=host_name, 
                                         snapshot_index=snapshot_index,
                                         disk_mask_angle=disk_mask_angle)
-    """
-    iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
-    for i,iso_sat_coords_i in enumerate(iso_hal['iso_coords']):
-        # apply disk mask
-        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, 
-                                                                host_axes_dict=host_axes_dict, 
-                                                                host_name=host_name, 
-                                                                snapshot_index=snapshot_index,
-                                                                disk_mask_angle=disk_mask_angle, 
-                                                                return_mask=True)
-        # store the disk mask for each isotropic iteration
-        iso_disk_mask_k[i] = iso_disk_mask
-    """
+
     for k,axes in enumerate(rot_vecs):
+        # rotate sat coords to a random plane to "fit" to
         sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_iso_coords, rotation_tensor=axes)
         sat_prime_coords = np.reshape(sat_prime_coords, (n_iter, n_sat, 3))
 
@@ -136,18 +125,19 @@ def iso_rand_angle_width(
                                         host_name=host_name, 
                                         snapshot_index=snapshot_index,
                                         disk_mask_angle=disk_mask_angle)
+    n_sat_masked = [np.sum(iso_dm) for iso_dm in iso_disk_mask_k]
     
     for k,axes in enumerate(rand_axes):
         snap_prime_coords = ut.basic.coordinate.get_coordinates_rotated(all_snap_coords, rotation_tensor=axes)
-        tangent_of_openning_angle = snap_prime_coords[:,2]/np.sqrt(snap_prime_coords[:,0]**2 + snap_prime_coords[:,1]**2)
-        snap_angles_k = np.degrees(np.arctan(tangent_of_openning_angle))
+        tangent_of_opening_angle = snap_prime_coords[:,2]/np.sqrt(snap_prime_coords[:,0]**2 + snap_prime_coords[:,1]**2)
+        snap_angles_k = np.degrees(np.arctan(tangent_of_opening_angle))
         snap_angles_n = np.reshape(snap_angles_k, (n_iter, n_sat))
 
         # create a copy of the angles array with the disk masked entries replaced by nan's
-        snap_angles_n_masked = np.where(~iso_disk_mask_k, snap_angles_n, np.nan)
+        snap_angles_n_masked = np.where(iso_disk_mask_k, snap_angles_n, np.nan)
 
         phi_width_k[k] = iso.optim_open_angle(snap_angles_n_masked, angle_range, 
-            threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array)
+            threshold_fraction, n_sat_masked[k], frac_enclosed_range, nan_array, angle_array)
 
     phi_width_n = np.nanmin(phi_width_k, axis=0)
 
