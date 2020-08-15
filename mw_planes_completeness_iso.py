@@ -144,7 +144,7 @@ def iso_rand_angle_width(
         snap_angles_n = np.reshape(snap_angles_k, (n_iter, n_sat))
 
         # create a copy of the angles array with the disk masked entries replaced by nan's
-        snap_angles_n_masked = np.where(iso_disk_mask_k, snap_angles_n, np.nan)
+        snap_angles_n_masked = np.where(~iso_disk_mask_k, snap_angles_n, np.nan)
 
         phi_width_k[k] = iso.optim_open_angle(snap_angles_n_masked, angle_range, 
             threshold_fraction, n_sat, frac_enclosed_range, nan_array, angle_array)
