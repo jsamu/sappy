@@ -6,6 +6,7 @@ from collections import defaultdict
 from satellite_analysis import satellite_io as sio
 from satellite_analysis import rand_axes as ra
 from satellite_analysis import isotropic as iso
+from satellite_analysis import mw_planes_completeness as mw
 
 
 def loop_iso(sat, mask_key, exec_func, **kwargs):
@@ -27,24 +28,6 @@ def loop_iso(sat, mask_key, exec_func, **kwargs):
 
     return loop_dict
 
-def select_out_of_disk(
-    sat_coords, host_axes_dict=None, host_name=None, snapshot_index=None, 
-    disk_mask_angle=12.0, return_mask=False):
-    if 'm12' in host_name:
-        disk_axes = host_axes_dict[host_name][0][snapshot_index]
-    else:
-        disk_axes = host_axes_dict[host_name][snapshot_index]
-    # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
-    # mask is True where satellites are unobscured
-    sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
-    tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
-    disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
-
-    if return_mask:
-        return sat_coords[disk_mask], disk_mask
-    else:
-        return sat_coords[disk_mask]
-
 def get_iso_disk_mask(
     iso_sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle):
     # get a disk mask of dimension (n_iter, n_sat)
@@ -52,7 +35,7 @@ def get_iso_disk_mask(
     iso_disk_mask_k = np.zeros((n_iter, n_sat), dtype='bool')
     for i, iso_sat_coords_i in enumerate(iso_sat_coords):
         # apply disk mask
-        iso_masked_sat_coords, iso_disk_mask = select_out_of_disk(iso_sat_coords_i, 
+        iso_masked_sat_coords, iso_disk_mask = mw.select_out_of_disk(iso_sat_coords_i, 
                                                                 host_axes_dict=host_axes_dict, 
                                                                 host_name=host_name, 
                                                                 snapshot_index=snapshot_index,

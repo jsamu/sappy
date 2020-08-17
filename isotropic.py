@@ -17,6 +17,9 @@ def iso_distribution(hal, hal_mask=None, host_str='host.', n_iter=1000):
     # get radial distances
     radial_distance = np.array(hal.prop(host_str+'distance.total')[hal_mask])
 
+    # store stellar masses
+    star_mass = hal['star.mass'][hal_mask]
+
     # generate isotropic (at fixed radial distribution) coordinates and unit velocities
     iso_coords, iso_vels = iso_iter(radial_distance, n_iter)
 
@@ -28,7 +31,8 @@ def iso_distribution(hal, hal_mask=None, host_str='host.', n_iter=1000):
     iso_open_angles = np.degrees(np.arctan(tangent_of_openning_angle))
 
     return {'iso_coords':iso_coords, 'iso_angles':iso_open_angles, 
-            'iso_vels':iso_vels, 'iso_radii':radial_distance, 'true_coords':sat_coords}
+            'iso_vels':iso_vels, 'iso_radii':radial_distance, 
+            'true_coords':sat_coords, 'star_mass':star_mass}
 
 @jit(nopython=True)
 def iso_iter(radial_distance, n_iter):
