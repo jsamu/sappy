@@ -142,7 +142,7 @@ def mask_hosts(sat, hal_name, redshift_index, mask_key, dmo=False):
 
 def mask_catalogs(sat, mask_keys, dmo=False):
     '''
-    Generate a mask for a single snapshot adhering to conditions given in mask_cuts_*.
+    Generate a mask for each host at each snapshot.
     '''
     sat_mask_dict = {}
     for host_key in sat.hal_catalog.keys():
@@ -150,9 +150,11 @@ def mask_catalogs(sat, mask_keys, dmo=False):
         for redshift_index in range(len(sat.redshift)):
             hal = sat.hal_catalog[host_key][redshift_index]
             if dmo is True:
-                snap_mask = mask_hal_dmo(hal=hal, sat=sat, hal_name=host_key, redshift_index=redshift_index, mask_keys=mask_keys)
+                snap_mask = mask_hal_dmo(hal=hal, sat=sat, hal_name=host_key, 
+                    redshift_index=redshift_index, mask_keys=mask_keys)
             else:
-                snap_mask = mask_hal_baryonic(hal=hal, sat=sat, mask_keys=mask_keys)
+                snap_mask = mask_hal_baryonic(hal=hal, sat=sat, mask_keys=mask_keys, 
+                    hal_name=host_key, redshift_index=redshift_index)
             host_masks.append(snap_mask)
         sat_mask_dict[host_key] = host_masks
 
@@ -176,7 +178,7 @@ def mask_hosts_lite(sat_params, sat_data, mask_keys, dmo=False):
 
     return sat_mask_dict
 
-def mask_hal_baryonic(hal, sat, mask_keys):
+def mask_hal_baryonic(hal, sat, mask_keys, hal_name=None, redshift_index=None):
     '''
     Create masks on different properties for the baryonic halo catalogs.
     '''
@@ -208,8 +210,30 @@ def mask_hal_baryonic(hal, sat, mask_keys):
                             mask_lowres_fraction & mask_distance & bound_mask)
 
         elif mask_key == 'most.star.mass':
-            #choosing top 11 most massive sats
+            #choosing top N most massive sats
             base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask & mask_star_density
+            base_ind = np.where(base_mask)[0]
+            base_sm = hal['star.mass'][base_ind]
+            top_n_base_sm_ind = np.argsort(base_sm)[-sat.abs_number:]
+            top_n_ind = base_ind[top_n_base_sm_ind]
+            combined_mask = np.zeros(len(hal['star.mass']), dtype=bool)
+            combined_mask[top_n_ind] = True
+
+        elif mask_key == 'disk.star.mass':
+            mask_star_mass_low = hal.prop('star.mass') >= sat.star_mass[0]
+            mask_star_mass_high = hal.prop('star.mass') <= sat.star_mass[1]
+            disk_mask = select_out_of_disk(hal['host.distance'], sat.host_disk_axes, hal_name, 
+                sat.snapshot[redshift_index], disk_mask_angle=sat.disk_mask_angle)
+            combined_mask = (host_mask & mask_star_mass_low & mask_star_mass_high & 
+                mask_star_density & mask_lowres_fraction & mask_distance & bound_mask &
+                disk_mask)
+
+        elif mask_key == 'disk.most.star.mass':
+            #choosing top N most massive sats
+            disk_mask = select_out_of_disk(hal['host.distance'], sat.host_disk_axes, hal_name, 
+                sat.snapshot[redshift_index], disk_mask_angle=sat.disk_mask_angle)
+            base_mask = (host_mask & mask_lowres_fraction & mask_distance & 
+                bound_mask & mask_star_density & disk_mask)
             base_ind = np.where(base_mask)[0]
             base_sm = hal['star.mass'][base_ind]
             top_n_base_sm_ind = np.argsort(base_sm)[-sat.abs_number:]
@@ -514,7 +538,6 @@ def mask_lg_baryon_cat(sat):
         host_list = ['host', 'host2']
         for host_name, host_str in zip(sat.hal_name[pair_name], host_list):
             for i,hal in enumerate(sat.hal_catalog[pair_name]):
-                print(host_name, i)
                 # choose only satellites of a single host galaxy
                 host_ind = np.unique(hal[host_str+'.index'])[0]
                 host_system_mask = hal[host_str+'.index'] == host_ind
@@ -552,6 +575,28 @@ def mask_lg_baryon_cat(sat):
                         base_vmax = hal['star.mass'][base_ind]
                         top_n_base_vmax_ind = np.argsort(base_vmax)[-sat.abs_number:]
                         top_n_ind = base_ind[top_n_base_vmax_ind]
+                        combined_mask = np.zeros(len(hal['star.mass']), dtype=bool)
+                        combined_mask[top_n_ind] = True
+
+                    elif mask_key == 'disk.star.mass':
+                        mask_star_mass_low = hal.prop('star.mass') >= sat.star_mass[0]
+                        mask_star_mass_high = hal.prop('star.mass') <= sat.star_mass[1]
+                        disk_mask = select_out_of_disk(hal[host_str+'.distance'], sat.host_disk_axes, host_name, 
+                            sat.snapshot[i], disk_mask_angle=sat.disk_mask_angle)
+                        combined_mask = (host_mask & mask_star_mass_low & mask_star_mass_high & 
+                            mask_star_density & lowres_mask & distance_mask & bound_mask &
+                            disk_mask)
+
+                    elif mask_key == 'disk.most.star.mass':
+                        #choosing top N most massive sats
+                        disk_mask = select_out_of_disk(hal[host_str+'.distance'], sat.host_disk_axes, host_name, 
+                            sat.snapshot[i], disk_mask_angle=sat.disk_mask_angle)
+                        base_mask = (host_mask & lowres_mask & distance_mask & 
+                            bound_mask & mask_star_density & disk_mask)
+                        base_ind = np.where(base_mask)[0]
+                        base_sm = hal['star.mass'][base_ind]
+                        top_n_base_sm_ind = np.argsort(base_sm)[-sat.abs_number:]
+                        top_n_ind = base_ind[top_n_base_sm_ind]
                         combined_mask = np.zeros(len(hal['star.mass']), dtype=bool)
                         combined_mask[top_n_ind] = True
 
@@ -1556,3 +1601,16 @@ def group_assoc(hal, hal_mask, host_str='host.'):
     tracked_central_local = np.array([hal['central.local.index'][ids.astype(int)] for ids in tracked_ids])
 
     return tracked_central
+
+def select_out_of_disk(
+    sat_coords, host_axes_dict, host_name, snapshot_index, disk_mask_angle=12.0):
+    if 'm12' in host_name:
+        disk_axes = host_axes_dict[host_name][0][snapshot_index]
+    else:
+        disk_axes = host_axes_dict[host_name][snapshot_index]
+    # cut out satellites that lie within +- disk_mask_angle degrees of the simulated MW disk
+    sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=disk_axes)
+    tangent_of_open_angle = sat_prime_coords[:,2]/np.sqrt(sat_prime_coords[:,0]**2 + sat_prime_coords[:,1]**2)
+    disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
+
+    return disk_mask

@@ -1,9 +1,8 @@
-from matplotlib import pyplot as plt
+import pickle
 import numpy as np
 import pandas as pd
 import utilities as ut
 from satellite_analysis import satellite_io as sio
-from satellite_analysis import plot_general as pg
 from satellite_analysis import spatial as spa
 from satellite_analysis import kinematics as kin
 from satellite_analysis import isotropic as iso
@@ -44,7 +43,8 @@ class SatParam(object):
     mass_peak = 8e8
     m_bound = 1e7
 
-    # completeness distance(s)
+    # completeness parameters
+    disk_mask_angle = 12.0
     d_complete = [150, 300]
     sm_complete = [1e5, 1e7]
 
@@ -216,7 +216,7 @@ class SatelliteHalo(SatParam):
         vel_circ_max_lim=None, v_peak=None, mass_peak=None, mass_bound=None,
         assign_species=True, radius_limits=None, radius_bin_width=None, 
         number_sats=None, time_info_file_path=None, redshift_limits=None,
-        file_kind='hdf5'):
+        file_kind='hdf5', host_disk_axes_file_path=None):
         """
         Parameters
         ----------
@@ -308,6 +308,11 @@ class SatelliteHalo(SatParam):
         if radius_limits:
             self.r_range = [radius_limits[0], radius_limits[1]]
             self.r_bins = ut.binning.BinClass(self.r_range, width=self.r_width).maxs
+
+        if host_disk_axes_file_path:
+            f = open(host_disk_axes_file_path, 'rb')
+            self.host_disk_axes = pickle.load(f)
+            f.close()            
 
         self.hal_label = sio.hal_label_names(self)
         self.mask_names = mask_names
