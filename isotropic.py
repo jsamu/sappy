@@ -17,9 +17,6 @@ def iso_distribution(hal, hal_mask=None, host_str='host.', n_iter=1000):
     # get radial distances
     radial_distance = np.array(hal.prop(host_str+'distance.total')[hal_mask])
 
-    # store stellar masses
-    star_mass = hal['star.mass'][hal_mask]
-
     # generate isotropic (at fixed radial distribution) coordinates and unit velocities
     iso_coords, iso_vels = iso_iter(radial_distance, n_iter)
 
