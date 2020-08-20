@@ -5,6 +5,7 @@ import pandas as pd
 from matplotlib import cm
 from matplotlib import pyplot as plt
 from scipy.stats import spearmanr
+from scipy.stats import gaussian_kde
 from collections import defaultdict
 import satellite_analysis as sa
 
@@ -763,8 +764,10 @@ def concentration_correlation_values(
 
         median_cons.append(median_con)
         median_probs.append(median_prob)
+
+    sp_r, sp_p = spearmanr(median_cons, median_probs)
     
-    return spearmanr(median_cons, median_probs)[0], spearmanr(median_cons, median_probs)[1]
+    return sp_r, sp_p
 
 def all_sim_concentration_correlation(
     all_grouped_tables, all_table_metrics, concentration_table, con_metric):
@@ -1081,3 +1084,124 @@ def plot_norm_to_isotropic(
     plt.xlabel('redshift [z]', fontsize=16)
     plt.ylabel(y_type+' relative to isotropic', fontsize=16)
     plt.show()
+
+
+###### DMO comparisons
+
+def plot_3_plane_kdes(
+    data_list1, data_list2, data_list3, nbins=100, redshift_limit=0.2, 
+    data_label_list=['Data 1', 'Data 2', 'Data 3']):
+    xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+            'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
+    plane_prop_list = ['rms.min', 'axis.ratio', 'opening.angle', 'orbital.pole.dispersion']
+
+    fig, axes = plt.subplots(1, 4, figsize=(16,4), sharey=True)
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.05, right=0.99, top=0.97, bottom=0.2, wspace=0)
+
+    for ax, grouped_table_1, grouped_table_2, grouped_table_3, prop in zip(axes, data_list1, data_list2, data_list3, plane_prop_list):
+        
+        # baryonic
+        all_host_list_nsat = []
+        for i,(host_key,host_group) in enumerate(grouped_table_1):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_nsat = all_host_list_nsat + list(host_group[prop][redshift_mask])
+
+        #print(prop, len(all_host_list_nsat), np.nanpercentile(all_host_list_nsat, 16))
+    
+        all_host_list_nsat = np.array(all_host_list_nsat)
+        plane_kde = gaussian_kde(all_host_list_nsat)
+        kde_x = np.linspace(np.nanmin(all_host_list_nsat), np.nanmax(all_host_list_nsat), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        ax.plot(kde_x, kde_y, '-.', color='#B73666', label=data_label_list[0])
+        ax.fill_between(kde_x, kde_y, color='#B73666', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat))/100, linestyle='-.', color='#B73666')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat)), linestyle='-.', color='#B73666')
+        
+        
+        
+        # DMO
+        all_host_list_halo = []
+        for i,(host_key,host_group) in enumerate(grouped_table_2):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_halo = all_host_list_halo + list(host_group[prop][redshift_mask])
+
+        #print(prop, len(all_host_list_halo), np.nanpercentile(all_host_list_halo, 16))
+        
+        all_host_list_halo = np.array(all_host_list_halo)
+        plane_kde = gaussian_kde(all_host_list_halo)
+        kde_x = np.linspace(np.nanmin(all_host_list_halo), np.nanmax(all_host_list_halo), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        ax.plot(kde_x, kde_y, color='#1A85FF', label=data_label_list[1], linestyle='--')
+        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_halo), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_halo))/100, color='#1A85FF', linestyle='--')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_halo), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_halo)), color='#1A85FF', linestyle='--')
+        
+            
+        # DMO 
+        all_host_list_dmo = []
+        for i,(host_key,host_group) in enumerate(grouped_table_3):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_dmo = all_host_list_dmo + list(host_group[prop][redshift_mask])
+
+        #print(prop, len(all_host_list_dmo), np.nanmin(all_host_list_dmo), np.nanpercentile(all_host_list_dmo, 16),                                     np.nanmax(all_host_list_dmo))
+        
+        all_host_list_dmo = np.array(all_host_list_dmo)
+        plane_kde = gaussian_kde(all_host_list_dmo)
+        kde_x = np.linspace(np.nanmin(all_host_list_dmo), np.nanmax(all_host_list_dmo), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        ax.plot(kde_x, kde_y, color='#1A85FF', label=data_label_list[2])
+        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_dmo), 0, plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/100,
+                    color='#1A85FF')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_dmo), 0, plane_kde.evaluate(np.nanmedian(all_host_list_dmo)),
+                    color='#1A85FF')
+
+        ax.set_xlabel(xlabels[prop], fontsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=20)
+
+    axes[3].set_ylim(0,0.065)
+
+    # RMS height panel
+    axes[0].set_xlim((0,155))
+    axes[0].set_xticks(np.arange(0,175,25))
+    axes[0].set_xticklabels([str(i) for i in np.arange(0,175,25)])
+    axes[0].legend(fontsize=16, handlelength=1.1, loc=1, borderaxespad=0.5)
+
+    # axis ratio panel
+    axes[1].set_xticks(np.arange(0.25,1.0,0.25))
+    axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
+
+    # opening angle panel
+    axes[2].set_xlim((10,125))
+    axes[2].set_xticks(np.arange(20,140,20))
+    axes[2].set_xticklabels([str(i) for i in np.arange(20,140,20)])
+
+    # orbital dispersion panel
+    axes[3].set_xlim((30,110))
+    axes[3].set_xticks(np.arange(40,110,10))
+    axes[3].set_xticklabels([str(i) for i in np.arange(40,110,10)])
+
+    return fig
