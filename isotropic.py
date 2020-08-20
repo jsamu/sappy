@@ -29,7 +29,7 @@ def iso_distribution(hal, hal_mask=None, host_str='host.', n_iter=1000):
 
     return {'iso_coords':iso_coords, 'iso_angles':iso_open_angles, 
             'iso_vels':iso_vels, 'iso_radii':radial_distance, 
-            'true_coords':sat_coords, 'star_mass':star_mass}
+            'true_coords':sat_coords}
 
 @jit(nopython=True)
 def iso_iter(radial_distance, n_iter):
