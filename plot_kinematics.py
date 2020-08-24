@@ -132,7 +132,28 @@ def draw_sphere(xCenter, yCenter, zCenter, r):
 
     return (x,y,z)
 
-def plot_3d_position(sat):
+def plot_3d_position(hal, hal_mask=None, host_str='host.', sm_norm=3):
+    #for i, host in enumerate(sat.halo_catalog):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    sat_coords = hal.prop(host_str+'distance')[hal_mask]
+    x = np.array([vec[0] for vec in sat_coords])
+    y = np.array([vec[1] for vec in sat_coords])
+    z = np.array([vec[2] for vec in sat_coords])
+    sph_radius = sm_norm*np.log10(hal['star.mass'][hal_mask])
+
+    # draw a sphere for each data point
+    for (xi,yi,zi,ri) in zip(x,y,z,sph_radius):
+        (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
+        ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
+
+    ax.scatter(0, 0, 0, '+', c='r')
+    #ax.quiver(x, y, z, u, v, w, length=0.1, normalize=True)
+    plt.show()
+
+    return fig
+
+def plot_3d_position_old(sat):
     #for i, host in enumerate(sat.halo_catalog):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
