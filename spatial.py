@@ -568,9 +568,9 @@ def axis_ratio(hal, hal_mask=None, host_str='host.', return_ax=False):
     sat_axes = get_satellite_principal_axes(hal, hal_mask, host_str=host_str)
 
     if return_ax is True:
-        return {'axis.ratio':sat_axes[2][0], 'ax':sat_axes[0][2]}
+        return {'axis.ratio':sat_axes[1][0], 'ax':sat_axes[0][2]}
     else:
-        return sat_axes[2][0]
+        return sat_axes[1][0]
         
 @jit
 def rms_distance(hal, hal_mask=None, host_str='host.'):
