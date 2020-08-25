@@ -148,7 +148,7 @@ def mask_catalogs(sat, mask_keys, dmo=False):
     sat_mask_dict = {}
     for host_key in sat.hal_catalog.keys():
         host_masks = []
-        for redshift_index in range(len(np.array([sat.redshift]))):
+        for redshift_index in range(len(sat.redshift)):
             hal = sat.hal_catalog[host_key][redshift_index]
             if dmo is True:
                 snap_mask = mask_hal_dmo(hal=hal, sat=sat, hal_name=host_key, 
