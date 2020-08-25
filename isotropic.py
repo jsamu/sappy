@@ -127,7 +127,7 @@ def iso_axis_ratio(iso_hal, distribution=True, verbose=False):
     for n in range(len(iso_hal['iso_coords'])):
         coords = iso_hal['iso_coords'][n]
         sat_axes = ut.coordinate.get_principal_axes(coords, verbose=verbose)
-        iter_ratios[n] = sat_axes[2][0]
+        iter_ratios[n] = sat_axes[1][0]
 
     if distribution:
         return iter_ratios
