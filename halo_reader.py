@@ -16,8 +16,8 @@ class SatParam(object):
     for all data sets to secondary functions.
     """
     # timing info, defaults are present day
-    snapshot = np.array([600])
-    redshift = np.array([0])
+    snapshot = 600
+    redshift = 0
     time = 13.8
 
     # radial bins to use for plotting/calculations
