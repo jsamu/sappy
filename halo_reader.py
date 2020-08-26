@@ -266,7 +266,7 @@ class SatelliteHalo(SatParam):
         time_dict = {'snapshot':snapshot_indices, 'redshift':redshift_list, 'time':time_list}
         for time_key in time_dict.keys():
             if time_dict[time_key] is not None:
-                exec("self.{} = {}".format(time_key, [time_dict[time_key]]))
+                exec("self.{} = {}".format(time_key, time_dict[time_key]))
             elif time_table is not None:
                 if redshift_limits is not None:
                     z_mask = np.array(
