@@ -166,9 +166,9 @@ def plot_3d_position(
     return fig
 
 def plot_3d_position_animate(
-    hal, hal_mask=None, host_str='host.', sm_norm=3, box_lim=200, angle_bin=3,
-    elevation=-10):
-    writer = animation.FFMpegWriter(fps=5, bitrate=-1)
+    hal, hal_mask=None, host_str='host.', sm_norm=2, box_lim=200, angle_bin=3,
+    elevation=10):
+    writer = animation.FFMpegWriter(fps=10, bitrate=500)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
@@ -199,7 +199,7 @@ def plot_3d_position_animate(
         ax.view_init(elev=elevation, azim=view_angles[j])
 
     ani = animation.FuncAnimation(fig, animate, frames=len(view_angles))
-    ani.save('./m12b_pan.mp4', writer=writer)
+    ani.save('./m12b_pan.mp4', writer=writer, dpi=300)
 
     return fig
 
