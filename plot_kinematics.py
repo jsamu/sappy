@@ -132,7 +132,8 @@ def draw_sphere(xCenter, yCenter, zCenter, r):
 
     return (x,y,z)
 
-def plot_3d_position(hal, hal_mask=None, host_str='host.', sm_norm=3):
+def plot_3d_position(
+    hal, hal_mask=None, host_str='host.', sm_norm=3, box_lim=200):
     #for i, host in enumerate(sat.halo_catalog):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -148,15 +149,22 @@ def plot_3d_position(hal, hal_mask=None, host_str='host.', sm_norm=3):
     for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
         (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
         ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
-        ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=0.1, normalize=True)
+        ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True)
 
     ax.scatter(0, 0, 0, '+', c='r')
+    ax.set_xlim3d([-box_lim, box_lim])
+    ax.set_xlabel('X [kpc]')
+    ax.set_ylim3d([-box_lim, box_lim])
+    ax.set_ylabel('Y [kpc]')
+    ax.set_zlim3d([-box_lim, box_lim])
+    ax.set_zlabel('Z [kpc]')
 
     plt.show()
 
     return fig
 
-def plot_3d_position_animate(hal, hal_mask=None, host_str='host.', sm_norm=3):
+def plot_3d_position_animate(
+    hal, hal_mask=None, host_str='host.', sm_norm=3, box_lim=200):
     writer = animation.FFMpegWriter(fps=5, bitrate=5000)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
@@ -177,7 +185,12 @@ def plot_3d_position_animate(hal, hal_mask=None, host_str='host.', sm_norm=3):
             ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=0.1, normalize=True)
 
         ax.scatter(0, 0, 0, '+', c='r')
-
+        ax.set_xlim3d([-box_lim, box_lim])
+        ax.set_xlabel('X [kpc]')
+        ax.set_ylim3d([-box_lim, box_lim])
+        ax.set_ylabel('Y [kpc]')
+        ax.set_zlim3d([-box_lim, box_lim])
+        ax.set_zlabel('Z [kpc]')
         ax.view_init(elev=-10., azim=view_angles[j])
 
     ani = animation.FuncAnimation(fig, animate, frames=361)
@@ -271,9 +284,9 @@ def plot_sat_position_mov3d(sat, hal_name, mask_key):
     ax = fig.add_subplot(111, projection='3d')
 
     def animate(j):
-        x = sat_coords[j][:,2]
-        y = sat_coords[j][:,0]
-        z = sat_coords[j][:,1]
+        x = sat_coords[j][:,0]
+        y = sat_coords[j][:,1]
+        z = sat_coords[j][:,2]
         #r = sat_sm#[j]
 
         ax.clear()
