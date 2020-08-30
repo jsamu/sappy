@@ -175,6 +175,10 @@ def plot_3d_position_animate(
     x = np.array([vec[0] for vec in sat_coords])
     y = np.array([vec[1] for vec in sat_coords])
     z = np.array([vec[2] for vec in sat_coords])
+    sat_vels = hal.prop(host_str+'velocity')[hal_mask]
+    vx = sat_vels[:,0]
+    vy = sat_vels[:,1]
+    vz = sat_vels[:,2]
     sph_radius = sm_norm*np.log10(hal['star.mass'][hal_mask])
 
     L_xyz = kin.orbital_ang_momentum(hal, hal_mask, host_str, norm=True)
@@ -182,14 +186,15 @@ def plot_3d_position_animate(
     view_angles = np.arange(0,360+angle_bin,angle_bin)
     def animate(j):
         # draw a sphere for each data point
-        for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
+        for i,(xi,yi,zi,ri,Li) in enumerate(zip(x,y,z,sph_radius,L_xyz)):
             #(xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
             #ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
             ax.scatter(xi,yi,zi, '.', color='c')
-            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True, linewidth=1.0)
+            #ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=45, normalize=True, linewidth=0.5)
+            ax.quiver(xi, yi, zi, vx[i], vy[i], vz[i], length=45, normalize=True, linewidth=0.5)
 
         avg_L = np.mean(L_xyz, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(L_xyz, axis=0))
-        ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k', linewidth=1.5)
+        ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k', linewidth=0.75)
         ax.scatter(0, 0, 0, marker='+', c='r')
         ax.set_xlim3d([-box_lim, box_lim])
         ax.set_xlabel('X [kpc]', fontsize=14, labelpad=14)
@@ -198,9 +203,10 @@ def plot_3d_position_animate(
         ax.set_zlim3d([-box_lim, box_lim])
         ax.set_zlabel('Z [kpc]', fontsize=14, labelpad=14)
         ax.view_init(elev=elevation, azim=view_angles[j])
+        print(r'{}\% done'.format(int(100*j/len(view_angles))))
 
     ani = animation.FuncAnimation(fig, animate, frames=len(view_angles))
-    ani.save('./m12b_pan.mp4', writer=writer, dpi=200)
+    ani.save('./m12b_pan.mp4', writer=writer, dpi=300)
 
     return ani
 
