@@ -186,21 +186,21 @@ def plot_3d_position_animate(
             #(xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
             #ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
             ax.scatter(xi,yi,zi, '.', color='c')
-            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True, linewidth=1.5)
+            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True, linewidth=1.0)
 
         avg_L = np.mean(L_xyz, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(L_xyz, axis=0))
         ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k', linewidth=1.5)
         ax.scatter(0, 0, 0, marker='+', c='r')
         ax.set_xlim3d([-box_lim, box_lim])
-        ax.set_xlabel('X [kpc]', fontsize=14)
+        ax.set_xlabel('X [kpc]', fontsize=14, labelpad=14)
         ax.set_ylim3d([-box_lim, box_lim])
-        ax.set_ylabel('Y [kpc]', fontsize=14)
+        ax.set_ylabel('Y [kpc]', fontsize=14, labelpad=14)
         ax.set_zlim3d([-box_lim, box_lim])
-        ax.set_zlabel('Z [kpc]', fontsize=14)
+        ax.set_zlabel('Z [kpc]', fontsize=14, labelpad=14)
         ax.view_init(elev=elevation, azim=view_angles[j])
 
     ani = animation.FuncAnimation(fig, animate, frames=len(view_angles))
-    ani.save('./m12b_pan.mp4', writer=writer, dpi=100)
+    ani.save('./m12b_pan.mp4', writer=writer, dpi=200)
 
     return ani
 
