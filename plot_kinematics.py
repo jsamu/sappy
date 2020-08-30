@@ -166,8 +166,9 @@ def plot_3d_position(
     return fig
 
 def plot_3d_position_animate(
-    hal, hal_mask=None, host_str='host.', sm_norm=3, box_lim=200):
-    writer = animation.FFMpegWriter(fps=5, bitrate=5000)
+    hal, hal_mask=None, host_str='host.', sm_norm=3, box_lim=200, angle_bin=3,
+    elevation=-10):
+    writer = animation.FFMpegWriter(fps=5, bitrate=-1)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
@@ -178,7 +179,7 @@ def plot_3d_position_animate(
 
     L_xyz = kin.orbital_ang_momentum(hal, hal_mask, host_str, norm=True)
 
-    view_angles = np.arange(0,361,1)
+    view_angles = np.arange(0,360+angle_bin,angle_bin)
     def animate(j):
         # draw a sphere for each data point
         for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
@@ -195,9 +196,9 @@ def plot_3d_position_animate(
         ax.set_ylabel('Y [kpc]')
         ax.set_zlim3d([-box_lim, box_lim])
         ax.set_zlabel('Z [kpc]')
-        ax.view_init(elev=-10., azim=view_angles[j])
+        ax.view_init(elev=elevation, azim=view_angles[j])
 
-    ani = animation.FuncAnimation(fig, animate, frames=361)
+    ani = animation.FuncAnimation(fig, animate, frames=len(view_angles))
     ani.save('./m12b_pan.mp4', writer=writer)
 
     return fig
