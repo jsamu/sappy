@@ -151,6 +151,8 @@ def plot_3d_position(
         ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
         ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True)
 
+    avg_L = np.mean(L_xyz, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(L_xyz, axis=0))
+    ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k')
     ax.scatter(0, 0, 0, '+', c='r')
     ax.set_xlim3d([-box_lim, box_lim])
     ax.set_xlabel('X [kpc]')
@@ -182,8 +184,10 @@ def plot_3d_position_animate(
         for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
             (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
             ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
-            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=0.1, normalize=True)
+            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=50, normalize=True)
 
+        avg_L = np.mean(L_xyz, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(L_xyz, axis=0))
+        ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k')
         ax.scatter(0, 0, 0, '+', c='r')
         ax.set_xlim3d([-box_lim, box_lim])
         ax.set_xlabel('X [kpc]')
