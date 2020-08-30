@@ -17,7 +17,7 @@ class SatParam(object):
     """
     # timing info, defaults are present day
     snapshot = 600
-    redshift = 0
+    redshift = [0]
     time = 13.8
 
     # radial bins to use for plotting/calculations

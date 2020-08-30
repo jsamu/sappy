@@ -84,7 +84,8 @@ def histogram_planar_intervals2(
     grouped_table_list, y_type_list, threshold_value_list, x_type='time', 
     exclude_single_snapshot=False, t_bin_width=0.25, 
     color_list=['C0', 'C1', 'C2', 'k'], 
-    histtype_list = ['bar', 'bar', 'bar', 'step'], legend_title=None):
+    histtype_list = ['bar', 'bar', 'bar', 'step'], legend_title=None,
+    y_scale='log', norm=True):
 
     fig, ax = plt.subplots(1,1,figsize=(6,5))
     fig.set_tight_layout(False)
@@ -187,26 +188,30 @@ def histogram_planar_intervals2(
 
     t_hist_max = np.nanmax(list(itertools.chain.from_iterable(t_hist_list)))
     for t_h,t_b, c, y_key in zip(t_hist_list, t_bin_list, color_list, y_type_list):
-        t_h_ = t_h/t_hist_max
+        if norm:
+            t_h = t_h/t_hist_max
         if 'orb' in y_key:
-            plt.bar(t_b[:-1], t_h_, align='edge', color="none", alpha=1, 
+            plt.bar(t_b[:-1], t_h, align='edge', color="none", alpha=1, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width,
                     edgecolor='k')
         elif 'coherent' in y_key:
-            plt.bar(t_b[:-1], t_h_, align='edge', color="none", alpha=1, 
+            plt.bar(t_b[:-1], t_h, align='edge', color="none", alpha=1, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width,
                     edgecolor='k')
         else:
-            plt.bar(t_b[:-1], t_h_, align='edge', color=c, alpha=0.55, 
+            plt.bar(t_b[:-1], t_h, align='edge', color=c, alpha=0.55, 
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width)
         
-    plt.legend(loc='upper right', title_fontsize=18, title=legend_title)
+    plt.legend(loc='upper right', title_fontsize=20, fontsize=18, title=legend_title)
     plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
     #plt.ylabel('Frequency', fontsize=20)
     ax.tick_params(axis='both', which='major', labelsize=20)
+    ax.tick_params(axis='x', which='both', top=False)
+    ax.tick_params(axis='y', which='both', right=False)
     #ax.set_xticks([0,1,2,3,4,5])
     #ax.set_xticks([k for k in range(int(np.max(all_t_corr)))])
     #ax.set_xticklabels([str(k) for k in range(int(np.max(all_t_corr)))])
+    plt.yscale(y_scale)
     plt.show()
 
     return fig

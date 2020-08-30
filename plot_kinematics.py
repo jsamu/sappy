@@ -142,14 +142,46 @@ def plot_3d_position(hal, hal_mask=None, host_str='host.', sm_norm=3):
     z = np.array([vec[2] for vec in sat_coords])
     sph_radius = sm_norm*np.log10(hal['star.mass'][hal_mask])
 
+    L_xyz = kin.orbital_ang_momentum(hal, hal_mask, host_str, norm=True)
+
     # draw a sphere for each data point
-    for (xi,yi,zi,ri) in zip(x,y,z,sph_radius):
+    for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
         (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
         ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
+        ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=0.1, normalize=True)
 
     ax.scatter(0, 0, 0, '+', c='r')
-    #ax.quiver(x, y, z, u, v, w, length=0.1, normalize=True)
+
     plt.show()
+
+    return fig
+
+def plot_3d_position_animate(hal, hal_mask=None, host_str='host.', sm_norm=3):
+    writer = animation.FFMpegWriter(fps=5, bitrate=5000)
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    sat_coords = hal.prop(host_str+'distance')[hal_mask]
+    x = np.array([vec[0] for vec in sat_coords])
+    y = np.array([vec[1] for vec in sat_coords])
+    z = np.array([vec[2] for vec in sat_coords])
+    sph_radius = sm_norm*np.log10(hal['star.mass'][hal_mask])
+
+    L_xyz = kin.orbital_ang_momentum(hal, hal_mask, host_str, norm=True)
+
+    view_angles = np.arange(0,361,1)
+    def animate(j):
+        # draw a sphere for each data point
+        for (xi,yi,zi,ri,Li) in zip(x,y,z,sph_radius,L_xyz):
+            (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
+            ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='viridis')
+            ax.quiver(xi, yi, zi, Li[0], Li[1], Li[2], length=0.1, normalize=True)
+
+        ax.scatter(0, 0, 0, '+', c='r')
+
+        ax.view_init(elev=-10., azim=view_angles[j])
+
+    ani = animation.FuncAnimation(fig, animate, frames=361)
+    ani.save('./m12b_pan.mp4', writer=writer)
 
     return fig
 
@@ -221,7 +253,51 @@ def plot_sat_position_mov(sat):
 
     return ani
 
-def plot_sat_position_mov3d(sat, id=0):
+def plot_sat_position_mov3d(sat, hal_name, mask_key):
+    '''
+    Make a movie of the 3D satellite positions over the len(sat.reshift) snapshots.
+    '''
+    writer = animation.FFMpegWriter(fps=5, bitrate=5000)
+    
+    hal = sat.hal_catalog[hal_name]
+    hal_mask = sat.catalog_mask[hal_name]
+
+    sat_coords = [hal[i].prop('host.distance')[hal_mask[i][mask_key]] for i in range(len(sat.redshift))]
+    sat_sm = [2*np.log10(hal[i].prop('star.mass')[hal_mask[i][mask_key]]) for i in range(len(sat.redshift))]
+    sat_sm = np.mean(sat_sm, axis=0)
+
+    #plt.style.use('dark_background')
+    fig = plt.figure(figsize=(8,8), dpi=250)
+    ax = fig.add_subplot(111, projection='3d')
+
+    def animate(j):
+        x = sat_coords[j][:,2]
+        y = sat_coords[j][:,0]
+        z = sat_coords[j][:,1]
+        #r = sat_sm#[j]
+
+        ax.clear()
+        ax.set_title('{} $z = {:.2f}$'.format(hal_name, sat.redshift[j]), color='k')
+
+        for (xi,yi,zi,ri) in zip(x,y,z,sat_sm):
+            (xs,ys,zs) = draw_sphere(xi,yi,zi,ri)
+            ax.plot_surface(xs, ys, zs, rstride=1, cstride=1, cmap='YlGn')
+
+        ax.scatter(0, 0, 0, c='r')
+
+        ax.set_xlim3d([-250, 250])
+        ax.set_xlabel('X [kpc]')
+        ax.set_ylim3d([-250, 250])
+        ax.set_ylabel('Y [kpc]')
+        ax.set_zlim3d([-250, 250])
+        ax.set_zlabel('Z [kpc]')
+
+    ani = animation.FuncAnimation(fig, animate, frames=range(len(sat.redshift)))
+    ani.save('./{}.mp4'.format(hal_name), writer=writer)
+
+    return ani
+
+def plot_sat_position_mov3d_old(sat, id=0):
     '''
     Make a movie of the 3D satellite positions over the len(sat.reshift) snapshots.
     '''
