@@ -202,7 +202,7 @@ def plot_3d_position_animate(
     ani = animation.FuncAnimation(fig, animate, frames=len(view_angles))
     ani.save('./m12b_pan.mp4', writer=writer, dpi=100)
 
-    return fig
+    return ani
 
 def plot_3d_position_old(sat):
     #for i, host in enumerate(sat.halo_catalog):
