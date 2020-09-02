@@ -166,9 +166,9 @@ def plot_3d_position(
     return fig
 
 def plot_3d_position_animate(
-    hal, hal_mask=None, host_str='host.', sm_norm=2, box_lim=200, angle_bin=3,
+    hal, hal_mask=None, host_str='host.', sm_norm=2, box_lim=210, angle_bin=3,
     elevation=10):
-    writer = animation.FFMpegWriter(fps=10, bitrate=500)
+    writer = animation.FFMpegWriter(fps=10, bitrate=5000)
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     sat_coords = hal.prop(host_str+'distance')[hal_mask]
@@ -196,12 +196,15 @@ def plot_3d_position_animate(
         avg_L = np.mean(L_xyz, axis=0, dtype=np.float64)/np.linalg.norm(np.mean(L_xyz, axis=0))
         ax.quiver(0, 0, 0, avg_L[0], avg_L[1], avg_L[2], length=100, normalize=True, color='k', linewidth=0.75)
         ax.scatter(0, 0, 0, marker='+', c='r')
+
+        ax.tick_params(axis='both', which='major', labelsize=12)
         ax.set_xlim3d([-box_lim, box_lim])
         ax.set_xlabel('X [kpc]', fontsize=14, labelpad=14)
         ax.set_ylim3d([-box_lim, box_lim])
         ax.set_ylabel('Y [kpc]', fontsize=14, labelpad=14)
         ax.set_zlim3d([-box_lim, box_lim])
         ax.set_zlabel('Z [kpc]', fontsize=14, labelpad=14)
+
         ax.view_init(elev=elevation, azim=view_angles[j])
         print(r'{}\% done'.format(int(100*j/len(view_angles))))
 

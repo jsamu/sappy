@@ -1009,7 +1009,7 @@ def plot_all_snaps_correlation(
     # empty lists for correlations
     host_prop_corr = []
     plane_metric_corr = []
-    plt.figure(figsize=(6,5))
+    plt.figure(figsize=(7,6))
     for host, plane_data in grouped_table:
         # get plane and host data in selected snapshot range
         snapshot_mask = plane_data['snapshot'] >= snapshot_limit
@@ -1035,7 +1035,10 @@ def plot_all_snaps_correlation(
             host_prop_corr += list(host_data)
             plane_metric_corr += list(plane_metric_data)
             if 'm12' in host:
-                plt.plot(host_data, plane_metric_data, '.', alpha=0.5, label=host)
+                if host in ['m12b', 'm12c', 'm12f', 'm12w']:
+                    plt.plot(host_data, plane_metric_data, '.', color='k', alpha=0.5, label=host)
+                else:
+                    plt.plot(host_data, plane_metric_data, '.', alpha=0.5, label=host)
             else:
                 plt.plot(host_data, plane_metric_data, '^', alpha=0.5, label=host)
 
@@ -1479,7 +1482,7 @@ def host_alignment(
     smooth=False, host_halo_axes_key=None, self_align=False, lmc_data=None):
     
     for host_key,host_group in grouped_table:
-        plt.figure()
+        plt.figure(figsize=(7,6))
         redshift_mask = host_group['redshift'] <= redshift_limit
         group_pole = np.dstack([host_group[table_key+'.x'], host_group[table_key+'.y'], 
                                 host_group[table_key+'.z']])[0][redshift_mask]
@@ -1523,7 +1526,171 @@ def host_alignment(
                             label='LMC pericenter')
 
         plt.legend()
-        plt.xlim((0.5,0))
+        plt.xlim((redshift_limit,0))
+        plt.ylim(0,90)
         plt.xlabel('Redshift [z]')
-        plt.ylabel('Angle btwn plane and host disk [deg]')
+        if host_halo_axes_key is not None:
+            plt.ylabel('Angle btwn plane and host halo min axis [deg]', fontsize=14)
+        else:
+            plt.ylabel('Angle btwn plane and host disk [deg]')
         plt.show()
+
+def plane_prob_and_dot_poles_vs_time2(
+    group1, group2, key1='min.axis', key2='avg.orbital.pole', key3='axis.ratio',
+    key4='orbital.pole.dispersion', subsample=None, lmc_data=None, host_align=None):
+    
+    for ((host_key1,host_group1), (host_key2,host_group2)) in zip(group1, group2):
+        assert host_key1 == host_key2
+        group1_pole = np.dstack([host_group1[key1+'.x'], host_group1[key1+'.y'], host_group1[key1+'.z']])[0]
+        group1_dot = np.array([np.dot(group1_pole_i, group1_pole[0])/(np.linalg.norm(group1_pole_i)*np.linalg.norm(group1_pole[0]))
+                            for group1_pole_i in group1_pole])
+        group1_dot_angle = np.degrees(np.arccos(np.abs(group1_dot)))
+        
+        
+        group2_pole = np.dstack([host_group2[key2+'.x'], host_group2[key2+'.y'], host_group2[key2+'.z']])[0]
+        group2_dot = np.array([np.dot(group2_pole_i, group2_pole[0])/(np.linalg.norm(group2_pole_i)*np.linalg.norm(group2_pole[0]))
+                            for group2_pole_i in group2_pole])
+        #group2_dot_angle = np.degrees(np.arccos(np.abs(group2_dot)))
+        group2_dot_angle = np.degrees(np.arccos(group2_dot))
+        
+        group12_dot = np.array([np.dot(pole1, pole2)/(np.linalg.norm(pole1)*np.linalg.norm(pole2))
+                                for pole1, pole2 in zip(group1_pole, group2_pole)])
+        group12_dot_angle = np.degrees(np.arccos(np.abs(group12_dot)))
+        
+        # dot plane normals with host disk minor axis
+        if host_align is not None:
+            host_mask = host_align['host'] == host_key1
+            host_norm = np.dstack([host_align['disk.minor.ax.x'][host_mask], 
+                                   host_align['disk.minor.ax.y'][host_mask], 
+                                   host_align['disk.minor.ax.z'][host_mask]])[0][0]
+            host_dot1 = np.array([np.dot(group1_pole_i, host_norm)/(np.linalg.norm(group1_pole_i)*np.linalg.norm(host_norm))
+                                for group1_pole_i in group1_pole])
+            host_dot_angle1 = np.degrees(np.arccos(np.abs(host_dot1)))
+            host_dot2 = np.array([np.dot(group2_pole_i, host_norm)/(np.linalg.norm(group2_pole_i)*np.linalg.norm(host_norm))
+                                for group2_pole_i in group2_pole])
+            host_dot_angle2 = np.degrees(np.arccos(np.abs(host_dot2)))
+
+
+        redshifts_ = np.array(host_group1['redshift'])
+        if subsample is not None:
+            #sub_sample = np.arange(0, len(redshifts_), subsample)
+            sub_sample = np.arange(0, len(redshifts_), subsample)
+            #print('number of snapshots used =', len(sub_sample))
+        else:
+            sub_sample = np.arange(0, len(redshifts_), 1)
+            
+            
+        if host_key1 in ['m12f', 'm12b', 'm12c', 'm12w']:
+            #if host_key1 in ['m12f', 'm12m']:
+            fig, ax1 = plt.subplots(1,1,figsize=(7.5,6))
+            fig.set_tight_layout(False)
+            fig.subplots_adjust(left=0.11, right=0.89, top=0.98, bottom=0.14)
+
+            # plot LMC pericenter passages
+            if lmc_data is not None:
+                first_passage = lmc_data['nth passage'] == 1
+                host_name = lmc_data['host'] == host_key1
+                lmc_peri_passages = lmc_data['redshift'][host_name & first_passage].values
+                lmc_peri_passages_t = lmc_data['time'][host_name & first_passage].values
+                if len(lmc_peri_passages) > 0:
+                    ax1.vlines(lmc_peri_passages, 0, 90, alpha='0.7', linestyles='--', 
+                               label='LMC pericenter')
+
+            color = 'darkblue'#'tab:blue'
+            ax1.set_xlabel('Redshift [z]')
+            ax1.set_ylabel('Angle btwn plane normals [deg]', color=color, fontsize=22)
+
+            # plot dividing line at 45 degrees separation
+            #ax1.plot(redshifts_[sub_sample], np.full_like(redshifts_, 45)[sub_sample], 
+            #            color='k', alpha=0.5, linestyle=':')
+
+            print(host_key1)
+            if key3 == 'axis.ratio':
+                ax1.plot(redshifts_[sub_sample], group12_dot_angle[sub_sample], color=color, linestyle='-.', 
+                         alpha=0.8, label=r'$\arccos(\hat{\rm n}_{\rm MOI} \cdot \hat{\rm n}_{\rm orb})$')
+                if host_align is not None:
+                    ax1.plot(redshifts_[sub_sample], host_dot_angle1[sub_sample], color='g', linestyle=':', 
+                             alpha=0.8, 
+                             label=r'$\arccos(\hat{\rm n}_{\rm MOI} \cdot \hat{\rm n}_{\rm host disk, z=0})$')
+                ax1.arrow(0.91, 42, 0.05, 0, fc=color, ec=color, head_width=3, head_length=0.04)
+
+                print('average alignment of diff poles:', np.nanmean(group12_dot_angle[sub_sample]))
+                print('min alignment of diff poles:', np.nanmin(group12_dot_angle[sub_sample]))
+                t_min_angle = host_group1['time'].values[np.where(group12_dot_angle == np.nanmin(group12_dot_angle[sub_sample]))[0][0]] 
+                print('time btwn LMC first passage and min:', t_min_angle - lmc_peri_passages_t)
+                print(t_min_angle, lmc_peri_passages_t)
+            elif key3 == 'orbital.pole.dispersion':
+                ax1.plot(redshifts_[sub_sample], group2_dot_angle[sub_sample], color=color, linestyle='-.', 
+                         alpha=0.8,label=r'$\arccos(\hat{\rm n}_{\rm orb} \cdot \hat{\rm n}_{\rm orb, z=0})$')
+                if host_align is not None:
+                    ax1.plot(redshifts_[sub_sample], host_dot_angle2[sub_sample], color='g', linestyle=':', 
+                             alpha=0.8, 
+                             label=r'$\arccos(\hat{\rm n}_{\rm orb} \cdot \hat{\rm n}_{\rm host disk, z=0})$')
+
+                print('average alignment with z=0 pole:', np.nanmean(group2_dot_angle[sub_sample][1::]))
+            elif key3 == 'rms.min':
+                ax1.plot(redshifts_[sub_sample], group12_dot_angle[sub_sample], color=color, linestyle='-.', 
+                         alpha=0.8,label=r'$\arccos(\hat{\rm n}_{\rm h} \cdot \hat{\rm n}_{\rm orb})$')
+                if host_align is not None:
+                    ax1.plot(redshifts_[sub_sample], host_dot_angle2[sub_sample], color='g', linestyle=':', 
+                             alpha=0.8, 
+                             label=r'$\arccos(\hat{\rm n}_{\rm h} \cdot \hat{\rm n}_{\rm host disk, z=0})$')
+
+                #print('average alignment with z=0 pole:', np.nanmean(group2_dot_angle[sub_sample]))
+            else:
+                ax1.plot(redshifts_[sub_sample], group12_dot_angle[sub_sample], color=color, linestyle='-.', 
+                         alpha=0.8, label=r'uhhh')
+
+            ax1.set_ylim((0,90))
+            ax1.tick_params(axis='y', labelcolor=color)
+            ax1.tick_params(axis='both', which='major', labelsize=22)
+
+
+            ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+            color = 'maroon'
+
+            if key3 == 'axis.ratio':
+                ax2.plot(redshifts_[sub_sample], host_group1[key3].values[sub_sample], color=color, 
+                         linestyle='-', label=r'$\frac{c}{a}$', alpha=0.8)
+                print('average axis ratio:', np.nanmean(host_group1[key3].values[sub_sample]))
+                ax2.arrow(0.09, 0.25, -0.05, 0, head_width=0.03, head_length=0.04, fc=color, ec=color)
+                ax2.set_ylim((0,1))
+                ax2.set_ylabel('Axis ratio', color=color, fontsize=22)
+            elif key3 == 'orbital.pole.dispersion':
+                ax2.plot(redshifts_[sub_sample], host_group2[key3].values[sub_sample], color=color, 
+                         linestyle='-', label=r'$\Delta_{\rm orb}$', alpha=0.8)
+                print('average orb dispersion:', np.nanmean(host_group2[key3].values[sub_sample]))
+                print('min orb dispersion:', np.nanmin(host_group2[key3].values[sub_sample]))
+                t_min_orb = host_group2['time'].values[np.where(
+                    host_group2[key3].values == np.nanmin(host_group2[key3].values))[0][0]] 
+                print('time btwn LMC first passage and orb disp min:', t_min_orb - lmc_peri_passages_t)
+                print(t_min_orb, lmc_peri_passages_t)
+                ax2.arrow(0.09, 65, -0.05, 0, head_width=1.5, head_length=0.04, fc=color, ec=color)
+                ax2.set_ylim((45, 95))
+                ax2.set_ylabel('Orbital pole dispersion [deg]', color=color, fontsize=22)
+                #ax2.plot(redshifts_[sub_sample], host_group2[key4].values[sub_sample], color=color, 
+                #    linestyle='--', label='orbital pole dispersion', alpha=0.8)
+            elif key3 == 'rms.min':
+                ax2.plot(redshifts_[sub_sample], host_group1[key3].values[sub_sample], color=color, 
+                         linestyle='-', label=r'$\Delta_{\rm h}$', alpha=0.8) 
+                ax2.arrow(0.09, 27, -0.05, 0, head_width=1.5, head_length=0.04, fc=color, ec=color)
+                ax2.set_ylim((20, 90))
+                ax2.set_ylabel('RMS height [kpc]', color=color, fontsize=22)
+
+            elif key3 == 'opening.angle':
+                ax2.plot(redshifts_[sub_sample], host_group1[key3].values[sub_sample], color=color, 
+                         linestyle='-', label=r'$\Delta_{\rm h}$', alpha=0.8) 
+                ax2.arrow(0.09, 75, -0.05, 0, head_width=1.5, head_length=0.04, fc=color, ec=color)
+                ax2.set_ylim((50, 100))
+                ax2.set_ylabel('Opening anlge [deg]', color=color, fontsize=22)
+
+            ax1.legend(title=host_key1, loc='upper center', fontsize=16, 
+                       handlelength=1, bbox_to_anchor=(0.42, 1))
+            ax2.tick_params(axis='y', labelcolor=color)
+            ax2.tick_params(axis='both', which='major', labelsize=22)
+            ax2.legend(loc='upper center', bbox_to_anchor=(0.27, 0.81), handlelength=1, fontsize=18)
+            ax1.set_ylim((0, 100))
+            ax2.set_ylim((0, 100))
+            plt.xlim((1, 0))
+            plt.ylim(0,100)
+            plt.show()

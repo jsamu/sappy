@@ -1597,7 +1597,7 @@ def halo_track(tree, initial_tree_ids, redshift_list=None, snapshot_list=None):
     else:
         snapshot_ids = snapshot_list
 
-    hal_tracker = np.empty((len(snapshot_ids), len(initial_tree_ids)), dtype='int32')
+    hal_tracker = np.full((601, len(initial_tree_ids)), -1, dtype='int32')
     i = np.max(snapshot_ids)
     hal_tracker[i] = initial_tree_ids
 
