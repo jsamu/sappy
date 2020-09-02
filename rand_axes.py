@@ -4,6 +4,7 @@ import utilities as ut
 from satellite_analysis import spatial as spa
 from satellite_analysis import angular as ang
 from satellite_analysis import math_funcs as mf
+from satellite_analysis import kinematics as kin
 
 @jit
 def rand_rot_vec(n_iter):
@@ -157,6 +158,32 @@ def rand_rms_min(
         return {'rms_minor':min_rms_minor, 'rms_major':rms_major}
     else:
         return min_rms_minor
+
+def rand_orbital_pole_dispersion(
+    hal, hal_mask=None, host_str='host.', n_iter=None):
+    '''
+    Calculate the angular dispersion [deg] of satellite orbital poles around
+    their mean orbital pole.
+    '''
+    rot_vecs, rot_mats = rand_rot_vec(n_iter)
+    orb_n = np.zeros(n_iter)
+    for n, rot_vec in enumerate(rot_vecs):
+        if np.sum(hal_mask) == 0:
+            orb_n[n] = np.nan
+            avg_j_vec = np.array([np.nan, np.nan, np.nan])
+        else:
+            j_vec = kin.orbital_ang_momentum(hal, hal_mask, host_str=host_str, norm=True)
+            rand_j_vec = rot_vec[2]/np.linalg.norm(rot_vec[2])
+            rand_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec])
+            # be agnostic about being aligned or anti-aligned
+            rand_j_dot_j = np.abs(rand_j_dot_j)
+            pole_disp = np.sqrt(np.mean(np.arccos(rand_j_dot_j)**2, dtype=np.float64))
+            orb_n[n] = np.degrees(pole_disp)
+
+    min_orb = np.min(orb_n)
+    min_index = np.where(orb_n == np.min(orb_n))[0][0]
+
+    return {'orbital.pole.dispersion':min_orb, 'average.orbital.pole':rot_vecs[min_index]}
 
 def rand_frac_open_angle(hal, hal_mask=None, angle_bins=None, n_iter=1000):
     '''
