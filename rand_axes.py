@@ -170,11 +170,10 @@ def rand_orbital_pole_dispersion(
     for n, rot_vec in enumerate(rot_vecs):
         if np.sum(hal_mask) == 0:
             orb_n[n] = np.nan
-            avg_j_vec = np.array([np.nan, np.nan, np.nan])
         else:
             j_vec = kin.orbital_ang_momentum(hal, hal_mask, host_str=host_str, norm=True)
             rand_j_vec = rot_vec[2]/np.linalg.norm(rot_vec[2])
-            rand_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec])
+            rand_j_dot_j = np.array([np.dot(rand_j_vec, j_vec_i) for j_vec_i in j_vec])
             # be agnostic about being aligned or anti-aligned
             rand_j_dot_j = np.abs(rand_j_dot_j)
             pole_disp = np.sqrt(np.mean(np.arccos(rand_j_dot_j)**2, dtype=np.float64))
