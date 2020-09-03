@@ -179,10 +179,14 @@ def rand_orbital_pole_dispersion(
             pole_disp = np.sqrt(np.mean(np.arccos(rand_j_dot_j)**2, dtype=np.float64))
             orb_n[n] = np.degrees(pole_disp)
 
-    min_orb = np.min(orb_n)
-    min_index = np.where(orb_n == np.min(orb_n))[0][0]
+    min_orb = np.nanmin(orb_n)
+    try:
+        min_index = np.where(orb_n == np.nanmin(orb_n))[0][0]
+        pole = rot_vecs[min_index][2]
+    except:
+        pole = np.array([np.nan, np.nan, np.nan])
 
-    return {'orbital.pole.dispersion':min_orb, 'average.orbital.pole':rot_vecs[min_index]}
+    return {'orbital.pole.dispersion':min_orb, 'average.orbital.pole':pole}
 
 def rand_frac_open_angle(hal, hal_mask=None, angle_bins=None, n_iter=1000):
     '''
