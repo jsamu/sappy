@@ -3,7 +3,7 @@ from numba import jit
 import utilities as ut
 from satellite_analysis import spatial as spa
 from satellite_analysis import angular as ang
-from satellite_analysis import math_funcs as mf
+from satellite_analysis import m31_like_planes as m31
 from satellite_analysis import kinematics as kin
 
 @jit
@@ -217,23 +217,69 @@ def rand_frac_open_angle(hal, hal_mask=None, angle_bins=None, n_iter=1000):
 
     return frac_enclosed_max
 
-def old_get_ax_diff(sat):
-    '''
-    Checks the difference between the intertia tensor axes and the minimized
-    opening angle axes by taking the difference of the Euler angles used to
-    rotate to each frame from the simulation frame.
-    '''
-    rand_phi, rand_min_matrix, rand_min_axes = rand_angle_width(sat)
-    open_angles, moi_rot_mat = ang.open_angle(sat, return_matrix=True)
-    all_ang_diffs = []
+def rand_2d_metrics(
+    hal, hal_mask=None, host_str='host.', n_iter=1000, rlim2d=300, n_sat=None):
+    """
+    Find maximum fraction of satellites with correlated LOS velocities along
+    n_iter different lines of sight and return maximum fraction.
+    """
+    sat_coords = hal.prop(host_str+'distance')[hal_mask]
+    sat_vels = hal.prop(host_str+'velocity')[hal_mask]
+    rot_vecs, rot_mats = rand_rot_vec(n_iter)
+    lop_frac_n = np.zeros(n_iter)
+    covel_frac_n = np.zeros(n_iter)
+    rms_minor_n = np.zeros(n_iter)
 
-    for host_moi, host_min in zip(moi_rot_mat, rand_min_matrix):
-        host_ang_diffs = []
-        for snap_moi, snap_min in zip(host_moi, host_min):
-            moi_euler_angs = mf.rotationMatrixToEulerAngles(snap_moi)
-            min_euler_angs = mf.rotationMatrixToEulerAngles(snap_min)
-            diff_euler_angs = moi_euler_angs - min_euler_angs
-            host_ang_diffs.append(diff_euler_angs)
-        all_ang_diffs.append(host_ang_diffs)
+    sat_star_mass = hal.prop('star.mass')[hal_mask]
+    num_of_sats = np.zeros(n_iter)
 
-    return all_ang_diffs
+    for n, rot_vec in enumerate(rot_vecs):
+        # rotate positions and velocities
+        sat_prime_coords = ut.basic.coordinate.get_coordinates_rotated(sat_coords, rotation_tensor=rot_vec)
+        sat_prime_vels = ut.basic.coordinate.get_coordinates_rotated(sat_vels, rotation_tensor=rot_vec)
+        if rlim2d is not None:
+            sat_prime_coords, proj_2d_mask = m31.select_in_2d_projection(
+                                            sat_prime_coords,
+                                            sat_star_mass, 
+                                            rlim2d=rlim2d,
+                                            return_mask=True,
+                                            n_sat=n_sat)
+            sat_prime_vels = sat_prime_vels[proj_2d_mask]
+            num_of_sats[n] = np.sum(proj_2d_mask)
+
+        # get fraction of satellites with coherence in LOS velocity and
+        # rms height for each random set of axes
+        lop_frac_n, covel_frac_n, rms_minor_n = optim_2d(
+            sat_prime_coords, sat_prime_vels, lop_frac_n, covel_frac_n, rms_minor_n, n)
+
+    return {
+        'num.sats':num_of_sats, 'lopsided.frac':lop_frac_n, 
+        'co.velocity.frac':covel_frac_n, 'rms.min':rms_minor_n}
+
+@jit(nopython=True)
+def optim_2d(
+    sat_coords, sat_vels, spatial_frac, velocity_frac, rms_minor, i):
+    # find 2D co-rotating fraction at each iteration
+    # y axis [1] is along LOS, positive or 0 y velocities are "approaching"
+    nsat = sat_coords[:,0].size
+    left_sats = sat_coords[:,0] >= 0
+    right_sats = sat_coords[:,0] < 0
+
+    # spatial lopsidedness
+    s_fracs = np.zeros(2)
+    s_fracs[0] = np.sum(left_sats)/nsat
+    s_fracs[1] = np.sum(right_sats)/nsat
+    assert np.sum(s_fracs) == 1.0
+    spatial_frac[i] = np.max(s_fracs)
+
+    # coherent velocities
+    approaching = sat_vels[:,1] >= 0
+    receding = sat_vels[:,1] < 0
+    fracs = np.zeros(2)
+    fracs[0] = np.sum((left_sats & approaching)|(right_sats & receding))/nsat
+    fracs[1] = np.sum((left_sats & receding)|(right_sats & approaching))/nsat
+    assert np.sum(fracs) == 1.0
+    velocity_frac[i] = np.max(fracs)
+    rms_minor[i] = np.sqrt(np.mean(sat_coords[:,2]**2))
+
+    return spatial_frac, velocity_frac, rms_minor
