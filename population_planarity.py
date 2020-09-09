@@ -4,6 +4,7 @@ import itertools
 import pandas as pd
 from matplotlib import cm
 from matplotlib import pyplot as plt
+import scipy.integrate
 from scipy.stats import spearmanr
 from scipy.stats import gaussian_kde
 from scipy.ndimage import gaussian_filter1d
@@ -85,11 +86,11 @@ def histogram_planar_intervals2(
     exclude_single_snapshot=False, t_bin_width=0.25, 
     color_list=['C0', 'C1', 'C2', 'k'], 
     histtype_list = ['bar', 'bar', 'bar', 'step'], legend_title=None,
-    y_scale='log', norm=True):
+    y_scale='log', norm=True, xticks=None):
 
     fig, ax = plt.subplots(1,1,figsize=(6,5))
     fig.set_tight_layout(False)
-    fig.subplots_adjust(left=0.14, right=0.98, top=0.98, bottom=0.16)
+    fig.subplots_adjust(left=0.16, right=0.98, top=0.97, bottom=0.17)
     t_hist_list = []
     t_bin_list = []
     t_hist_dict = {}
@@ -203,14 +204,19 @@ def histogram_planar_intervals2(
                     linewidth=3, label=prop_labels[y_key], width=t_bin_width)
         
     plt.legend(loc='upper right', title_fontsize=20, fontsize=18, title=legend_title)
-    plt.xlabel(r'$\Delta t_{plane}$ [Gyr]', fontsize=20)
-    #plt.ylabel('Frequency', fontsize=20)
-    ax.tick_params(axis='both', which='major', labelsize=20)
-    ax.tick_params(axis='x', which='both', top=False)
-    ax.tick_params(axis='y', which='both', right=False)
-    #ax.set_xticks([0,1,2,3,4,5])
+    plt.xlabel(r'Plane lifetime [Gyr]', fontsize=20)
+    plt.ylabel('Number of plane instances', fontsize=20)
+    ax.tick_params(axis='both', which='both', labelsize=20, direction='out')
+    ax.tick_params(axis='x', which='both', top=False, pad=6)
+    #ax.tick_params(axis='x', which='minor', bottom=False)
+    ax.tick_params(axis='y', which='both', right=False, direction='out')
+    if xticks is not None:
+        ax.set_xticks(xticks)
     #ax.set_xticks([k for k in range(int(np.max(all_t_corr)))])
     #ax.set_xticklabels([str(k) for k in range(int(np.max(all_t_corr)))])
+    tarr = np.concatenate([t for t in t_bin_list])
+    plt.xlim((0, np.max(tarr)))
+    plt.ylim((0.9,100))
     plt.yscale(y_scale)
     plt.show()
 
@@ -1169,17 +1175,17 @@ def plot_norm_to_isotropic(
 ###### DMO comparisons
 def plot_3_plane_kdes(
     data_list1, data_list2, data_list3, nbins=100, redshift_limit=0.2, 
-    data_label_list=['Data 1', 'Data 2', 'Data 3']):
+    data_label_list=['Data 1', 'Data 2', 'Data 3'],
+    plane_prop_list = ['rms.min', 'axis.ratio', 'opening.angle', 'orbital.pole.dispersion']):
     xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
             'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
-    plane_prop_list = ['rms.min', 'axis.ratio', 'opening.angle', 'orbital.pole.dispersion']
 
-    fig, axes = plt.subplots(1, 4, figsize=(16,4), sharey=True)
+    fig, axes = plt.subplots(1, len(plane_prop_list), figsize=(4*len(plane_prop_list),4), sharey=True)
     fig.set_tight_layout(False)
 
     font = {'size'   : 14}
     plt.rc('font', **font)
-    fig.subplots_adjust(left=0.05, right=0.99, top=0.97, bottom=0.2, wspace=0)
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
 
     for ax, grouped_table_1, grouped_table_2, grouped_table_3, prop in zip(axes, data_list1, data_list2, data_list3, plane_prop_list):
         
@@ -1198,14 +1204,18 @@ def plot_3_plane_kdes(
         if prop in ['axis.ratio']:
             kde_y = kde_y/100
 
-        ax.plot(kde_x, kde_y, '-.', color='#B73666', label=data_label_list[0])
-        ax.fill_between(kde_x, kde_y, color='#B73666', alpha=0.35)
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, '-.', color='#B73666', label=data_label_list[0])
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#B73666', alpha=0.35)
         if prop in ['axis.ratio']:
             ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
-                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat))/100, linestyle='-.', color='#B73666')
+                    plane_kde.evaluate(
+                        np.nanmedian(all_host_list_nsat))/100/norm_factor, linestyle='-.', color='#B73666')
         else:
             ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
-                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat)), linestyle='-.', color='#B73666')
+                    plane_kde.evaluate(
+                        np.nanmedian(all_host_list_nsat))/norm_factor, linestyle='-.', color='#B73666')
         
         
         
@@ -1224,14 +1234,16 @@ def plot_3_plane_kdes(
         if prop in ['axis.ratio']:
             kde_y = kde_y/100
 
-        ax.plot(kde_x, kde_y, color='#1A85FF', label=data_label_list[1], linestyle='--')
-        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=data_label_list[1], linestyle='--')
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#1A85FF', alpha=0.35)
         if prop in ['axis.ratio']:
             ax.vlines(np.nanmedian(all_host_list_halo), 0, 
-                    plane_kde.evaluate(np.nanmedian(all_host_list_halo))/100, color='#1A85FF', linestyle='--')
+                    plane_kde.evaluate(np.nanmedian(all_host_list_halo))/100/norm_factor, color='#1A85FF', linestyle='--')
         else:
             ax.vlines(np.nanmedian(all_host_list_halo), 0, 
-                    plane_kde.evaluate(np.nanmedian(all_host_list_halo)), color='#1A85FF', linestyle='--')
+                    plane_kde.evaluate(np.nanmedian(all_host_list_halo))/norm_factor, color='#1A85FF', linestyle='--')
         
             
         # DMO 
@@ -1240,7 +1252,8 @@ def plot_3_plane_kdes(
             redshift_mask = host_group['redshift'] <= redshift_limit
             all_host_list_dmo = all_host_list_dmo + list(host_group[prop][redshift_mask])
 
-        #print(prop, len(all_host_list_dmo), np.nanmin(all_host_list_dmo), np.nanpercentile(all_host_list_dmo, 16),                                     np.nanmax(all_host_list_dmo))
+        #print(prop, len(all_host_list_dmo), np.nanmin(all_host_list_dmo), 
+        # np.nanpercentile(all_host_list_dmo, 16), np.nanmax(all_host_list_dmo))
         
         all_host_list_dmo = np.array(all_host_list_dmo)
         plane_kde = gaussian_kde(all_host_list_dmo)
@@ -1249,39 +1262,45 @@ def plot_3_plane_kdes(
         if prop in ['axis.ratio']:
             kde_y = kde_y/100
 
-        ax.plot(kde_x, kde_y, color='#1A85FF', label=data_label_list[2])
-        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=data_label_list[2])
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#1A85FF', alpha=0.35)
         if prop in ['axis.ratio']:
-            ax.vlines(np.nanmedian(all_host_list_dmo), 0, plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/100,
-                    color='#1A85FF')
+            ax.vlines(
+                np.nanmedian(all_host_list_dmo), 0, 
+                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/100/norm_factor,
+                color='#1A85FF')
         else:
-            ax.vlines(np.nanmedian(all_host_list_dmo), 0, plane_kde.evaluate(np.nanmedian(all_host_list_dmo)),
-                    color='#1A85FF')
+            ax.vlines(
+                np.nanmedian(all_host_list_dmo), 0, 
+                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/norm_factor,
+                color='#1A85FF')
 
         ax.set_xlabel(xlabels[prop], fontsize=20)
         ax.tick_params(axis='both', which='major', labelsize=20)
 
-    axes[3].set_ylim(0,0.07)
-
     # RMS height panel
-    axes[0].set_xlim((0,155))
-    axes[0].set_xticks(np.arange(0,175,25))
-    axes[0].set_xticklabels([str(i) for i in np.arange(0,175,25)])
-    axes[0].legend(fontsize=16, handlelength=1.1, loc=1, borderaxespad=0.5)
+    axes[0].set_ylim(0,0.035)
+    #axes[0].set_xlim((0,155))
+    #axes[0].set_xticks(np.arange(0,175,25))
+    #axes[0].set_xticklabels([str(i) for i in np.arange(0,175,25)])
+    axes[0].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
+    axes[0].set_ylabel('Probability Density', fontsize=20)
 
     # axis ratio panel
-    axes[1].set_xticks(np.arange(0.25,1.0,0.25))
-    axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
+    #axes[1].set_xticks(np.arange(0.25,1.0,0.25))
+    #axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
 
     # opening angle panel
-    axes[2].set_xlim((10,150))
-    axes[2].set_xticks(np.arange(20,150,20))
-    axes[2].set_xticklabels([str(i) for i in np.arange(20,150,20)])
+    #axes[2].set_xlim((10,150))
+    #axes[2].set_xticks(np.arange(20,150,20))
+    #axes[2].set_xticklabels([str(i) for i in np.arange(20,150,20)])
 
     # orbital dispersion panel
-    axes[3].set_xlim((30,110))
-    axes[3].set_xticks(np.arange(40,110,10))
-    axes[3].set_xticklabels([str(i) for i in np.arange(40,110,10)])
+    axes[2].set_xlim((45,105))
+    #axes[2].set_xticks(np.arange(40,110,10))
+    #axes[2].set_xticklabels([str(i) for i in np.arange(40,110,10)])
 
     return fig
 
@@ -1289,9 +1308,9 @@ def plot_3_plane_kdes(
 def plot_plane_significance_2panel(
     grouped_table_list, y_type_list, y_type_isotropic_list, redshift_limit=0.2, probability=False):
     # try figsize 8,4.5 or 5
-    fig, (ax1,ax2) = plt.subplots(2, 1, figsize=(11, 6.5), sharex=True, sharey=True)
+    fig, (ax1,ax2) = plt.subplots(2, 1, figsize=(11, 5.5), sharex=True, sharey=True)
     fig.set_tight_layout(False)
-    fig.subplots_adjust(left=0.12, right=0.99, top=0.95, bottom=0.05, wspace=0, hspace=0)
+    fig.subplots_adjust(left=0.12, right=0.99, top=0.93, bottom=0.05, wspace=0, hspace=0)
     
     for ax, grouped_table, y_type, y_type_isotropic in zip([ax1,ax2],
                                                             grouped_table_list, 
@@ -1347,10 +1366,10 @@ def plot_plane_significance_2panel(
     ax2.set_xticklabels(x_labels, fontsize=12)
     
     if probability:
-        fig.text(0.01, 0.5, r'Probability of finding a more planar configuration', 
+        fig.text(0.01, 0.5, r'Probability of finding a more planar system', 
                  va='center', rotation='vertical', fontsize=20)
-        fig.text(0.22, 0.515, r'More significant plane', ha='left', fontsize=16, color='red')
-        fig.text(0.22, 0.905, r'Less significant plane', ha='left', fontsize=16, color='red')
+        fig.text(0.22, 0.505, r'More significant', ha='left', fontsize=16, color='red')
+        fig.text(0.22, 0.885, r'Less significant', ha='left', fontsize=16, color='red')
     else:
         fig.text(0.02, 0.53, r'Plane metric normalized to isotropic average', 
                  va='center', rotation='vertical', fontsize=20)

@@ -93,7 +93,7 @@ def orbital_ang_momentum(hal, hal_mask=None, host_str='host.', norm=False):
     return ang_momentum
 
 #@jit
-def orbital_pole_dispersion(hal, hal_mask=None, host_str='host.'):
+def orbital_pole_dispersion(hal, hal_mask=None, host_str='host.', return_pole=True):
     '''
     Calculate the angular dispersion [deg] of satellite orbital poles around
     their mean orbital pole.
@@ -107,8 +107,11 @@ def orbital_pole_dispersion(hal, hal_mask=None, host_str='host.'):
         avg_j_dot_j = np.array([np.dot(avg_j_vec, j_vec_i) for j_vec_i in j_vec]) 
         pole_disp = np.sqrt(np.mean(np.arccos(avg_j_dot_j)**2, dtype=np.float64))
         pole_disp = np.degrees(pole_disp)
-
-    return {'orbital.pole.dispersion':pole_disp, 'average.orbital.pole':avg_j_vec}
+        
+    if return_pole:
+        return {'orbital.pole.dispersion':pole_disp, 'average.orbital.pole':avg_j_vec}
+    else:
+        return pole_disp
 
 def project_orbital_ang_momentum(hal, hal_mask=None, project_axes=None, norm=False):
     '''
