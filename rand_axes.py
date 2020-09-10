@@ -144,16 +144,17 @@ def rand_rms_min(
         rms_minor_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,2]**2))
         rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
 
-    min_rms_minor = np.min(rms_minor_n)
-    #min_rms_major = np.min(rms_major_n)
-    min_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
+    min_rms_minor = np.nanmin(rms_minor_n)
+
     if return_ax is True:
+        min_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
         rms_major = rms_major_n[min_index]
         # return just the vector normal to the plane
         min_ax = rot_vecs[min_index][2]
         #min_mat = rot_mats[min_index]
         return {'rms_minor':min_rms_minor, 'rms_major':rms_major, 'ax':min_ax}
     elif return_parallel is True:
+        min_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
         rms_major = rms_major_n[min_index]
         return {'rms_minor':min_rms_minor, 'rms_major':rms_major}
     else:
