@@ -1188,12 +1188,44 @@ def plot_3_plane_kdes(
     fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
 
     for ax, grouped_table_1, grouped_table_2, grouped_table_3, prop in zip(axes, data_list1, data_list2, data_list3, plane_prop_list):
-        
+        # DMO 
+        all_host_list_dmo = []
+        for i,(host_key,host_group) in enumerate(grouped_table_3):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_dmo = all_host_list_dmo + list(host_group[prop][redshift_mask])
+
+        all_host_list_dmo = np.array(all_host_list_dmo)
+        plane_kde = gaussian_kde(all_host_list_dmo)
+        kde_x = np.linspace(np.nanmin(all_host_list_dmo), np.nanmax(all_host_list_dmo), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, color='k', label=data_label_list[2], alpha=0.7)
+        ax.fill_between(kde_x, kde_y/norm_factor, color='k', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(
+                np.nanmedian(all_host_list_dmo), 0, 
+                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/100/norm_factor,
+                color='k', alpha=0.7)
+        else:
+            ax.vlines(
+                np.nanmedian(all_host_list_dmo), 0, 
+                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/norm_factor,
+                color='k', alpha=0.7)
+
+
+
+
         # baryonic
         all_host_list_nsat = []
         for i,(host_key,host_group) in enumerate(grouped_table_1):
             redshift_mask = host_group['redshift'] <= redshift_limit
             all_host_list_nsat = all_host_list_nsat + list(host_group[prop][redshift_mask])
+            #if prop == 'orbital.pole.dispersion':
+            #    print(host_key, host_group[prop][redshift_mask][host_group[prop][redshift_mask] < 60])
 
         #print(prop, len(all_host_list_nsat), np.nanpercentile(all_host_list_nsat, 16))
     
@@ -1246,51 +1278,26 @@ def plot_3_plane_kdes(
                     plane_kde.evaluate(np.nanmedian(all_host_list_halo))/norm_factor, color='#1A85FF', linestyle='--')
         
             
-        # DMO 
-        all_host_list_dmo = []
-        for i,(host_key,host_group) in enumerate(grouped_table_3):
-            redshift_mask = host_group['redshift'] <= redshift_limit
-            all_host_list_dmo = all_host_list_dmo + list(host_group[prop][redshift_mask])
 
-        #print(prop, len(all_host_list_dmo), np.nanmin(all_host_list_dmo), 
-        # np.nanpercentile(all_host_list_dmo, 16), np.nanmax(all_host_list_dmo))
-        
-        all_host_list_dmo = np.array(all_host_list_dmo)
-        plane_kde = gaussian_kde(all_host_list_dmo)
-        kde_x = np.linspace(np.nanmin(all_host_list_dmo), np.nanmax(all_host_list_dmo), nbins)
-        kde_y = plane_kde.evaluate(kde_x)
-        if prop in ['axis.ratio']:
-            kde_y = kde_y/100
-
-        norm_factor = scipy.integrate.trapz(kde_y)
-
-        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=data_label_list[2])
-        ax.fill_between(kde_x, kde_y/norm_factor, color='#1A85FF', alpha=0.35)
-        if prop in ['axis.ratio']:
-            ax.vlines(
-                np.nanmedian(all_host_list_dmo), 0, 
-                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/100/norm_factor,
-                color='#1A85FF')
-        else:
-            ax.vlines(
-                np.nanmedian(all_host_list_dmo), 0, 
-                plane_kde.evaluate(np.nanmedian(all_host_list_dmo))/norm_factor,
-                color='#1A85FF')
 
         ax.set_xlabel(xlabels[prop], fontsize=20)
         ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.tick_params(axis='y', which='both', right=False)
+        ax.tick_params(axis='y', which='minor', left=False)
 
     # RMS height panel
     axes[0].set_ylim(0,0.035)
-    #axes[0].set_xlim((0,155))
+    axes[0].set_xlim((20,105))
     #axes[0].set_xticks(np.arange(0,175,25))
     #axes[0].set_xticklabels([str(i) for i in np.arange(0,175,25)])
     axes[0].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
-    axes[0].set_ylabel('Probability Density', fontsize=20)
+    axes[0].set_ylabel('Probability density', fontsize=20)
 
     # axis ratio panel
     #axes[1].set_xticks(np.arange(0.25,1.0,0.25))
     #axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
+    axes[1].set_xlim((0.15,0.85))
 
     # opening angle panel
     #axes[2].set_xlim((10,150))
@@ -1377,8 +1384,156 @@ def plot_plane_significance_2panel(
     return fig
 
 def kde_lmc_passages(
+    grouped_table_list, y_type_list, host_table, 
+    lmc_key='snap.first.lmc.passage', fig_name=None, 
+    legend_ax_ind=0, exclude_host_list=[], exclude_lmc_list=[], n_snap=5, MW=False):
+    nbins = 100
+    xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+               'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
+
+    fig, axes = plt.subplots(1, 3, figsize=(12,4), sharey=True)
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
+    frac_below = {}
+    for ax, grouped_table, prop in zip(axes, 
+                                       [grouped_table_list[0], grouped_table_list[1], grouped_table_list[2]],
+                                       [y_type_list[0], y_type_list[1], y_type_list[2]]
+                                      ):
+    
+        lmc_snapshots = np.zeros((grouped_table.ngroups,grouped_table.size().values[0]))
+        
+        all_host_list_with_lmc = []
+        all_host_list_no_lmc = []
+        snap_limit = 600
+        
+        # get data near LMC passages
+        for i,(host_key,host_group) in enumerate(grouped_table):
+            if host_key in exclude_lmc_list:
+                pass
+            else:
+                lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
+                if lmc_first_snap == '':
+                    continue
+                else:
+                    lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
+                for snap in lmc_first_snap:
+                    lmc_snap_mask = ((host_group['snapshot'].values <= (int(snap) + n_snap)) & 
+                        (host_group['snapshot'].values >= (int(snap) - n_snap)))
+                    lmc_snapshots[i] = np.array(lmc_snap_mask, dtype=int)
+                    
+                    if len(list(host_group[prop][lmc_snap_mask])) > 0:
+                        all_host_list_with_lmc = all_host_list_with_lmc + list(host_group[prop][lmc_snap_mask])
+                    snap_limit = min(min(host_group['snapshot'][lmc_snap_mask]), snap_limit)
+                    
+        # get data for hosts without LMC-like passages at the same times
+        for i,(host_key,host_group) in enumerate(grouped_table):
+            if host_key in exclude_host_list:
+                pass
+            elif host_key in exclude_lmc_list:
+                pass
+            else:
+                lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
+                if lmc_first_snap == '':
+                    pass
+                else:
+                    lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
+                own_lmc_snap_mask = np.ones(host_group['snapshot'].values.size, dtype=bool)
+                for snap in lmc_first_snap:
+                    own_lmc_snap_mask[np.where((host_group['snapshot'].values <= (snap + n_snap)) & 
+                        (host_group['snapshot'].values >= (snap - n_snap)))] = False
+                # only go back as far as the LMC-having host data
+                snap_limit_mask = host_group['snapshot'] >= snap_limit
+                if len(lmc_first_snap) > 0:
+                    all_host_list_no_lmc += list(host_group[prop][snap_limit_mask & own_lmc_snap_mask])
+                else:
+                    all_host_list_no_lmc += list(host_group[prop][snap_limit_mask])
+
+        print(len(all_host_list_with_lmc), len(all_host_list_no_lmc))
+        print((np.nanmedian(all_host_list_with_lmc)-np.nanmedian(all_host_list_no_lmc))/np.nanmedian(all_host_list_no_lmc))
+        
+        # snaps with LMC's
+        all_host_list_with_lmc = np.array(all_host_list_with_lmc)
+        plane_kde = gaussian_kde(all_host_list_with_lmc)
+        kde_x = np.linspace(np.nanmin(all_host_list_with_lmc), np.nanmax(all_host_list_with_lmc), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, '-.', color='#B73666', label=r'simulations with LMC')
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#B73666', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_with_lmc), 0, 
+                      plane_kde.evaluate(np.nanmedian(all_host_list_with_lmc))/100/norm_factor, 
+                      linestyle='-.', color='#B73666')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_with_lmc), 0, 
+                      plane_kde.evaluate(np.nanmedian(all_host_list_with_lmc))/norm_factor, 
+                      linestyle='-.', color='#B73666')
+
+
+        # snaps without LMC's
+        all_host_list_no_lmc = np.array(all_host_list_no_lmc)
+        plane_kde = gaussian_kde(all_host_list_no_lmc)
+        kde_x = np.linspace(np.nanmin(all_host_list_no_lmc), np.nanmax(all_host_list_no_lmc), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        norm_factor = scipy.integrate.trapz(kde_y)
+
+        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=r'simulations without LMC')
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#1A85FF', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_no_lmc), 0, 
+                      plane_kde.evaluate(np.nanmedian(all_host_list_no_lmc))/100/norm_factor, color='#1A85FF')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_no_lmc), 0, 
+                      plane_kde.evaluate(np.nanmedian(all_host_list_no_lmc))/norm_factor, color='#1A85FF')
+
+        ax.set_xlabel(xlabels[prop], fontsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.tick_params(axis='y', which='both', right=False)
+        ax.tick_params(axis='y', which='minor', left=False)
+
+        if MW:
+            # confidence limits with proper uncertainty sampling & angle values for angle enclosing 100% of satellites
+            # WITH SgrI
+            MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
+            MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
+            MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
+            ax.axvline(MW_values[prop], color='k', linestyle='--', label='Milky Way')
+            ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
+            ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
+            frac_below[prop] = np.sum(all_host_list_with_lmc<= MW_uncerts_68[prop][1])/all_host_list_with_lmc.size
+
+    axes[0].set_ylabel('Probability density', fontsize=20)
+    axes[0].set_ylim(0,0.03)
+    axes[0].set_xlim((20,105))
+    axes[0].set_xticks(np.arange(25,115,15))
+    axes[0].set_xticklabels([str(i) for i in np.arange(25,115,15)])
+    axes[1].set_xticks(np.arange(0.25,1.0,0.25))
+    axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
+    axes[2].set_xticks(np.arange(55,100,10))
+    axes[2].set_xticklabels([str(i) for i in np.arange(55,100,10)])
+    axes[legend_ax_ind].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
+
+    if MW:
+        for ax, prop in zip(axes, y_type_list):
+            ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
+            ax.text(ax.get_xlim()[1] - 0.14*ax_width, 0.0275, 
+                '{:.1f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
+    if fig_name is not None:
+        fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
+
+def kde_lmc_passages_old(
     grouped_table_list, y_type_list, host_table, lmc_key='snap.first.lmc.passage', fig_name=None, 
-    legend_ax_ind=0, concurrent=True, exclude_host_list=[]):
+    legend_ax_ind=0, concurrent=True, exclude_host_list=[], exclude_lmc_list=[]):
     
     n_snap = 5
     nbins = 100
@@ -1404,18 +1559,21 @@ def kde_lmc_passages(
         
         # get data near LMC passages
         for i,(host_key,host_group) in enumerate(grouped_table):
-            lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
-            if lmc_first_snap == '':
-                continue
+            if host_key in exclude_lmc_list:
+                pass
             else:
-                lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
-            for snap in lmc_first_snap:
-                lmc_snap_mask = ((host_group['snapshot'].values <= (int(snap) + n_snap)) & 
-                    (host_group['snapshot'].values >= (int(snap) - n_snap)))
-                lmc_snapshots[i] = np.array(lmc_snap_mask, dtype=int)
-                
-                if len(list(host_group[prop][lmc_snap_mask])) > 0:
-                    all_host_list_with_lmc = all_host_list_with_lmc + list(host_group[prop][lmc_snap_mask])
+                lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
+                if lmc_first_snap == '':
+                    continue
+                else:
+                    lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
+                for snap in lmc_first_snap:
+                    lmc_snap_mask = ((host_group['snapshot'].values <= (int(snap) + n_snap)) & 
+                        (host_group['snapshot'].values >= (int(snap) - n_snap)))
+                    lmc_snapshots[i] = np.array(lmc_snap_mask, dtype=int)
+                    
+                    if len(list(host_group[prop][lmc_snap_mask])) > 0:
+                        all_host_list_with_lmc = all_host_list_with_lmc + list(host_group[prop][lmc_snap_mask])
                     
         # get data for hosts without LMC-like passages at the same times
         lmc_snapshots = np.sum(lmc_snapshots, axis=0)
@@ -1713,3 +1871,32 @@ def plane_prob_and_dot_poles_vs_time2(
             plt.xlim((1, 0))
             plt.ylim(0,100)
             plt.show()
+
+def sub_host(sim_infall_history, snapshot_list=np.arange(0,601,1), lmc_track=None):
+    group_central_track = sim_infall_history['central.index']
+    main_host_track = sim_infall_history['main.host.index']
+    satellite_track = sim_infall_history['tree.index']
+    satellite_mass_track = sim_infall_history['mass']
+    central_mass_track = sim_infall_history['central.mass']
+    # see if cenral hosts were not the MW progenitor
+    # group_central_track = m12i_groups['m12i'][0] # z=0 satellites
+    group_history = defaultdict(list)
+    for snap in snapshot_list:
+        for i, group_host in enumerate(group_central_track[snap]):
+            if group_host > 0:
+                if (group_host != main_host_track[snap]) & (group_host != satellite_track[snap][i]):
+                    group_history['snapshot'].append(snap)
+                    group_history['num.group.members'].append(
+                        np.sum(satellite_track[snap] == group_host) + np.sum(group_central_track[snap] == group_host))
+                    group_history['group.host.tree.id'].append(group_host)
+                    #group_history['group.member.tree.id'].append(satellite_track[snap][i])
+                    #if tree is not None:
+                    group_history['group.host.mass'].append(central_mass_track[snap][i])
+                    #group_history['group.member.mass'].append(satellite_mass_track[snap][i])
+                    if lmc_track is not None:
+                        if lmc_track[snap] == group_host:
+                            group_history['group.host.type'].append('LMC')
+                        else:
+                            group_history['group.host.type'].append(-1)
+
+    return group_history

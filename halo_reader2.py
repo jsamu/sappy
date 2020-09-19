@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
 import utilities as ut
+from collections import defaultdict
 import satellite_analysis as sappy
 from satellite_analysis.satellite_io2 import MaskHalo
-from satellite_analysis.satellite_io2 import LoopHalo
 
 
 class SatelliteParameter(object):
@@ -49,24 +49,20 @@ class SatelliteParameter(object):
     sm_complete = [1e5, 1e7]
 
 
-class SatelliteCatalog(SatelliteParameter, MaskHalo, LoopHalo):
+class SatelliteSelect(SatelliteParameter, MaskHalo):
     """
-    Load and collect halo catalogs for different host halos for a range of
-    redshifts into a single list of lists. Load in comparable observational data.
-    Secondary functions in spatial.py, etc. can calculate and plot relevant
-    metrics of the distributions.
+    Masking and looping over halo catalogs and merger trees.
     """
-
     def __init__(
         self, 
         sat_data, 
+        sat_type='hal',
         host_name_list=None, 
+        host_number=1,
+        dmo=False,
         mask_names=None, 
-        dmo=False, 
-        baryon_sat=None, 
         star_mass_limit=None,
         radius_limit=None, 
-        host_number=1,
         vel_circ_max_lim=None, 
         v_peak=None, 
         mass_peak=None, 
@@ -81,46 +77,21 @@ class SatelliteCatalog(SatelliteParameter, MaskHalo, LoopHalo):
         """
         Parameters
         ----------
-        directory_list : list
-            List of strings specifying where the hdf5 halo catalogs are.
+        sat_data : dictionary
+            either a dictionary of merger trees or a dictionary of halo catalogs
+            where the keys are simulation names
+        sat_type : string
+            type of data contained in sat_data, 'hal' for halo catalogs by 
+            default, but can be 'tree' for merger trees
         redshift_list : list
             List of floats specifying which redshifts (hdf5 files) to read in
             from the directories.
         host_name_list : list
             List of strings specifying the name of each host halo that is being
             read in, used in plots.
-        mask_label_dict : dictionary
-            Dictionary of host names (keys) matched to names for plotting with
-            specific masks.
         mask_names : list
             Strings specifying which masks to create for the trees.
-        dmo : boolean
-            True if the data being loaded in are for dark matter only (DMO)
-            simulations, False by default.
-        baryon_sat : Satellite object
-            Baryonic counterpart object, used to create masks for dark matter
-            only simulations.
-
-        Returns
-        -------
-        halo_catalog : list
-            Halo catalog dictionaries output by halo.io.Read.read_catalogs().
-            The format is one overarching list whose elements are a list for each
-            host halo, which is in turn a list of dictionaries at each input redshift.
-        catalog_mask : list
-            Boolean values that implement the masks of satellite_analysis.mask_cuts().
-            The format is the same as halo_catalog, but instead of dictionaries as the
-            most basic unit there are 1D boolean lists.
         """
-
-        # set type of object to be read by other functions
-        if host_number > 1:
-            self.sat_type = 'hal.lg.lite'
-            self.hal_name = host_name_list
-        else:
-            self.sat_type = 'hal.lite'
-            self.hal_name = np.array(host_name_list)
-
         time_table = None
         if time_info_file_path is not None:
             time_table = pd.read_csv(time_info_file_path, sep=' ')
@@ -155,23 +126,99 @@ class SatelliteCatalog(SatelliteParameter, MaskHalo, LoopHalo):
             self.r_range = [radius_limits[0], radius_limits[1]]
             self.r_bins = ut.binning.BinClass(self.r_range, width=self.r_width).maxs
 
-        # create and store masks
+        # set type of object to be read by other functions
         if host_number > 1:
-            if dmo:
-                ### put a default mask here
-                self.catalog_mask = self.mask_lg_dmo_cat(self)
-                #self.num_sats = spa.total_sats(self, baryon_sat, mask_key='star.mass', radius=self.r_range[1])
-                #self.med_v_circ = kin.med_velcircmax_z0(baryon_sat, mask_key='star.number')
-                # don't need these for now so just set to 0
-                self.num_sats = 0
-                self.med_v_virc = 0
-            else:
-                ### put a default mask here
-                self.catalog_mask = self.mask_lg_baryon_cat(self)
-
+            self.sat_type = sat_type+'.lg'
+            self.hal_name = host_name_list
         else:
-            if dmo:
-                self.num_sats = 0
-                self.med_v_virc = 0
-            ### put a default mask here
-            self.catalog_mask = self.mask_hosts_lite(self, sat_data=sat_data, mask_keys=mask_names, dmo=dmo)
+            self.sat_type = sat_type
+            self.hal_name = np.array(host_name_list)
+
+        if sat_type == 'hal':
+            # create and store masks
+            if host_number > 1:
+                if dmo:
+                    ### put a default mask here
+                    self.catalog_mask = self.mask_lg_dmo_cat(self)
+                    self.num_sats = 0
+                    self.med_v_virc = 0
+                else:
+                    ### put a default mask here
+                    self.catalog_mask = self.mask_lg_baryon_cat(self)
+
+            else:
+                if dmo:
+                    self.num_sats = 0
+                    self.med_v_virc = 0
+                ### put a default mask here
+                self.catalog_mask = self.mask_hosts_lite(self, sat_data=sat_data, mask_keys=mask_names, dmo=dmo)
+        elif sat_type == 'tree':
+            if host_number > 1:
+                if dmo:
+                    #self.tree_mask = self.mask_tree_lg_dmo(self)
+                    pass                
+                else:
+                    self.tree_mask = self.mask_tree_lg(self)
+            
+            else:
+                if dmo:
+                    self.tree_mask = self.mask_tree_dmo(self)
+                else:
+                    self.tree_mask = self.mask_tree(self)
+        else:
+            print('sat type not recognized')
+
+    def loop_hal(self, sat_data, mask_key, exec_func, **kwargs):
+        '''
+        Loop a function over a series of halo catalogs for each simulation in a 
+        sat object.
+
+        Parameters
+        ----------
+        sat : Satellite object
+            class created in halo_reader.py
+        mask_key : str
+            keyword specifying the type of halo property to cut/mask halos on
+        exec_func : function
+            function to call repeatedly/pass sat to
+        kwargs : dictionary
+            dictionary of key value pairs where keys are the keywords of exec_func
+
+        Returns
+        -------
+        loop_dict : dictionary
+            stores the output of exec_func for each simulation and snapshot in sat
+        '''
+        loop_dict = defaultdict(list)
+        if self.sat_type == 'tree':
+            for host_name in sat_data.keys():
+                for redshift_index in range(len(self.redshift)):
+                    tree = sat_data[host_name]
+                    tree_mask = self.tree_mask[host_name][redshift_index][mask_key]
+                    loop_dict[host_name].append(exec_func(hal=tree, hal_mask=tree_mask, **kwargs))
+        elif self.sat_type == 'tree.lg':
+            for pair_name in sat_data.keys():
+                for host_name, host_str in zip(self.hal_name[pair_name], ['host.', 'host2.']):
+                    for redshift_index in range(len(self.redshift)):
+                        tree = sat_data[pair_name]
+                        tree_mask = self.tree_mask[pair_name][host_name][redshift_index][mask_key]
+                        loop_dict[host_name].append(exec_func(hal=tree, hal_mask=tree_mask, host_str=host_str, **kwargs))
+        elif self.sat_type == 'hal':
+            for hal_name in self.hal_name:
+                for redshift_index in range(len(self.redshift)):
+                # this implicitly loops over the snapshots/redshifts that have been loaded
+                #for hal, hal_mask in zip(sat.hal_catalog[hal_name], sat.catalog_mask[mask_key][hal_name]):
+                    hal = sat_data[hal_name][redshift_index]
+                    hal_mask = self.catalog_mask[hal_name][redshift_index][mask_key]
+                    loop_dict[hal_name].append(exec_func(hal=hal, hal_mask=hal_mask, **kwargs))
+        elif self.sat_type == 'hal.lg':
+            for pair_name in sat_data.keys():
+                for host_name, host_str in zip(self.hal_name[pair_name], ['host.', 'host2.']):
+                    for redshift_index in range(len(self.redshift)):
+                        hal = sat_data[pair_name][redshift_index]
+                        hal_mask = self.catalog_mask[pair_name][host_name][redshift_index][mask_key]
+                        loop_dict[host_name].append(exec_func(hal=hal, hal_mask=hal_mask, host_str=host_str, **kwargs))
+        else:
+            print('sat type not recognized')
+
+        return loop_dict
