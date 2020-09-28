@@ -92,17 +92,23 @@ class SatelliteSelect(SatelliteParameter, MaskHalo):
         mask_names : list
             Strings specifying which masks to create for the trees.
         """
+
+        assert sat_data is not None, "Need to pass sat_data as a dictionary or list of dictionaries."
+
         time_table = None
+
         if time_info_file_path is not None:
             time_table = pd.read_csv(time_info_file_path, sep=' ')
+
         time_dict = {'snapshot':snapshot_indices, 'redshift':redshift_list, 'time':time_list}
+
         for time_key in time_dict.keys():
             if time_dict[time_key] is not None:
                 exec("self.{} = {}".format(time_key, list(time_dict[time_key])))
             elif time_table is not None:
                 exec("self.{} = {}".format(time_key, list(time_table[time_key].values)))
             else:
-                print("No {} information provided, defaulting to z=0 snapshot.".format(time_key))
+                raise ValueError("No {} information provided.".format(time_key))
         del(time_table)
 
         # set or reset essential parameters
@@ -133,6 +139,8 @@ class SatelliteSelect(SatelliteParameter, MaskHalo):
         else:
             self.sat_type = sat_type
             self.hal_name = np.array(host_name_list)
+        
+        assert sat_type in ['hal', 'tree'], "The chosen sat_type is not recognized."
 
         if sat_type == 'hal':
             # create and store masks
@@ -166,7 +174,7 @@ class SatelliteSelect(SatelliteParameter, MaskHalo):
                 else:
                     self.tree_mask = self.mask_tree(self)
         else:
-            print('sat type not recognized')
+            raise ValueError("The chosen sat_type is not recognized.")
 
     def loop_hal(self, sat_data, mask_key, exec_func, **kwargs):
         '''

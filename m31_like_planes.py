@@ -26,6 +26,8 @@ def select_in_2d_projection(
             top_n_ind = base_ind[top_n_base_sm_ind]
             proj_mask = np.zeros(len(sat_stellar_mass), dtype=bool)
             proj_mask[top_n_ind] = True
+        elif np.sum(proj_mask) < n_sat:
+            proj_mask = np.zeros(len(sat_stellar_mass), dtype=bool)
 
     if return_mask:
         return sat_coords_rot[proj_mask], proj_mask
@@ -36,7 +38,7 @@ def select_in_2d_projection(
 def rand_rms_min(
     hal, hal_mask=None, host_str='host.', n_iter=None, r_frac=None, 
     radius_bins=None, return_ax=False, return_parallel=False, projection=None,
-    n_sat=None):
+    n_sat=None, return_dist=False):
     '''
     Rotates the 3D positions of the satellites randomly and uniformly for sat.n_iter
     realizations. Finds the rms along the z-axis that encloses the specified
@@ -63,19 +65,25 @@ def rand_rms_min(
                                                         rlim2d=projection,
                                                         n_sat=n_sat)
             #sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
-        rms_minor_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,2]**2))
-        rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
+        if len(sat_prime_coords) == 0:
+            rms_minor_n[n] = np.nan
+            rms_major_n[n] = np.nan
+        else:
+            rms_minor_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,2]**2))
+            rms_major_n[n] = np.sqrt(np.nanmean(sat_prime_coords[:,0]**2))
 
     min_rms_minor = np.min(rms_minor_n)
     min_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
-    if return_ax is True:
+    if return_ax:
         rms_major = rms_major_n[min_index]
         # return just the vector normal to the plane
         min_ax = rot_vecs[min_index][2]
         return {'rms_minor':min_rms_minor, 'rms_major':rms_major, 'ax':min_ax}
-    elif return_parallel is True:
+    elif return_parallel:
         rms_major = rms_major_n[min_index]
         return {'rms_minor':min_rms_minor, 'rms_major':rms_major}
+    elif return_dist:
+        return rms_minor_n
     else:
         return min_rms_minor
 
@@ -144,7 +152,7 @@ def rand_angle_width(
 @jit
 def axis_ratio(
     hal, hal_mask=None, host_str='host.', return_ax=False, projection=None, 
-    n_iter=1000, n_sat=None):
+    n_iter=1000, n_sat=None, return_dist=False):
     '''
     Get the axis ratio (minor/major) for the total distribution of satellites
     within the fiducial virial radius of the host halo.
@@ -163,10 +171,15 @@ def axis_ratio(
                                             rlim2d=projection,
                                             n_sat=n_sat)
             #sat_prime_coords = select_in_2d_projection(sat_prime_coords, rlim2d=projection)
-        sat_axes = ut.coordinate.get_principal_axes(sat_prime_coords)
-        axis_ratio_n[n] = sat_axes[2][0]
-
-    return np.min(axis_ratio_n)
+        if len(sat_prime_coords) == 0:
+            axis_ratio_n[n] = np.nan
+        else:
+            sat_axes = ut.coordinate.get_principal_axes(sat_prime_coords)
+            axis_ratio_n[n] = sat_axes[2][0]
+    if return_dist:
+        return axis_ratio_n
+    else:
+        return np.min(axis_ratio_n)
 """
 @jit
 def get_satellite_principal_axes(
@@ -184,7 +197,8 @@ def get_satellite_principal_axes(
     return moi_quantities
 """
 def rand_los_vel_coherence(
-    hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, n_sat=None):
+    hal, hal_mask=None, host_str='host.', n_iter=1000, projection=None, 
+    n_sat=None, return_dist=False):
     """
     Find maximum fraction of satellites with correlated LOS velocities along
     n_iter different lines of sight and return maximum fraction.
@@ -211,13 +225,16 @@ def rand_los_vel_coherence(
                                             return_mask=True,
                                             n_sat=n_sat)
             sat_prime_vels = sat_prime_vels[proj_2d_mask]
-            num_of_sats[n] = np.sum(proj_2d_mask)
-            min_sm_of_sats[n] = np.min(sat_star_mass[proj_2d_mask])
+            #num_of_sats[n] = np.sum(proj_2d_mask)
+            #min_sm_of_sats[n] = np.min(sat_star_mass[proj_2d_mask])
 
         # get fraction of satellites with coherence in LOS velocity and
         # rms height for each random set of axes
-        coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
-            sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
+        if len(sat_prime_coords) == 0:
+            coherent_frac_n[n] = np.nan
+        else:
+            coherent_frac_n, rms_minor_n = optim_los_vel_coherence(
+                sat_prime_coords, sat_prime_vels, coherent_frac_n, rms_minor_n, n)
 
     # print statements to get minimum numbers and stellar masses of satellites
     # under the different M31-like selection functions
@@ -230,7 +247,10 @@ def rand_los_vel_coherence(
     #min_rms_index = np.where(rms_minor_n == np.min(rms_minor_n))[0][0]
 
     #return coherent_frac_n[min_rms_index]
-    return np.max(coherent_frac_n)
+    if return_dist:
+        return coherent_frac_n
+    else:
+        return np.max(coherent_frac_n)
 
 @jit(nopython=True)
 def optim_los_vel_coherence(sat_coords, sat_vels, coherent_frac, rms_minor, i):

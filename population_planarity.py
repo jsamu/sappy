@@ -1386,7 +1386,9 @@ def plot_plane_significance_2panel(
 def kde_lmc_passages(
     grouped_table_list, y_type_list, host_table, 
     lmc_key='snap.first.lmc.passage', fig_name=None, 
-    legend_ax_ind=0, exclude_host_list=[], exclude_lmc_list=[], n_snap=5, MW=False):
+    legend_ax_ind=0, legend_pos=2, legend_ncol=1,
+    exclude_host_list=[], exclude_lmc_list=[], 
+    n_snap=5, MW=False):
     nbins = 100
     xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
                'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
@@ -1464,7 +1466,7 @@ def kde_lmc_passages(
 
         norm_factor = scipy.integrate.trapz(kde_y)
 
-        ax.plot(kde_x, kde_y/norm_factor, '-.', color='#B73666', label=r'simulations with LMC')
+        ax.plot(kde_x, kde_y/norm_factor, '-.', color='#B73666', label=r'with LMC')
         ax.fill_between(kde_x, kde_y/norm_factor, color='#B73666', alpha=0.35)
         if prop in ['axis.ratio']:
             ax.vlines(np.nanmedian(all_host_list_with_lmc), 0, 
@@ -1486,7 +1488,7 @@ def kde_lmc_passages(
 
         norm_factor = scipy.integrate.trapz(kde_y)
 
-        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=r'simulations without LMC')
+        ax.plot(kde_x, kde_y/norm_factor, color='#1A85FF', label=r'without LMC')
         ax.fill_between(kde_x, kde_y/norm_factor, color='#1A85FF', alpha=0.35)
         if prop in ['axis.ratio']:
             ax.vlines(np.nanmedian(all_host_list_no_lmc), 0, 
@@ -1507,7 +1509,7 @@ def kde_lmc_passages(
             MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
             MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
             MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
-            ax.axvline(MW_values[prop], color='k', linestyle='--', label='Milky Way')
+            ax.axvline(MW_values[prop], color='k', linestyle='--', label='MW')
             ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
             ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
             frac_below[prop] = np.sum(all_host_list_with_lmc<= MW_uncerts_68[prop][1])/all_host_list_with_lmc.size
@@ -1521,12 +1523,13 @@ def kde_lmc_passages(
     axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
     axes[2].set_xticks(np.arange(55,100,10))
     axes[2].set_xticklabels([str(i) for i in np.arange(55,100,10)])
-    axes[legend_ax_ind].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
+    axes[legend_ax_ind].legend(fontsize=16, handlelength=1.1, loc=legend_pos, 
+        ncol=legend_ncol, borderaxespad=0.5)
 
     if MW:
         for ax, prop in zip(axes, y_type_list):
             ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
-            ax.text(ax.get_xlim()[1] - 0.14*ax_width, 0.0275, 
+            ax.text(ax.get_xlim()[1] - 0.16*ax_width, 0.0275, 
                 '{:.1f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
     if fig_name is not None:
         fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
