@@ -1308,6 +1308,7 @@ def plot_3_plane_kdes(
     axes[2].set_xlim((45,105))
     #axes[2].set_xticks(np.arange(40,110,10))
     #axes[2].set_xticklabels([str(i) for i in np.arange(40,110,10)])
+    plt.show()
 
     return fig
 
@@ -1576,131 +1577,12 @@ def kde_lmc_passages(
                 '{:.0f}%'.format(100*frac_below[prop]), ha='right', fontsize=16, color='#B73666')
             ax.text(ax.get_xlim()[1] - 0.025*ax_width, 0.025, 
                 '{:.0f}%'.format(100*frac_below2[prop]), ha='right', fontsize=16, color='#1A85FF')
+    plt.show()
+
     if fig_name is not None:
         fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
-
-def kde_lmc_passages_old(
-    grouped_table_list, y_type_list, host_table, lmc_key='snap.first.lmc.passage', fig_name=None, 
-    legend_ax_ind=0, concurrent=True, exclude_host_list=[], exclude_lmc_list=[]):
     
-    n_snap = 5
-    nbins = 100
-    xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
-               'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
-
-    fig, axes = plt.subplots(1, 4, figsize=(16,4), sharey=True)
-    fig.set_tight_layout(False)
-
-    font = {'size'   : 14}
-    plt.rc('font', **font)
-    fig.subplots_adjust(left=0.05, right=0.99, top=0.97, bottom=0.2, wspace=0)
-
-    for ax, grouped_table, prop in zip(axes, 
-                                       [grouped_table_list[0], grouped_table_list[1], grouped_table_list[2], grouped_table_list[3]],
-                                       [y_type_list[0], y_type_list[1], y_type_list[2], y_type_list[3]]
-                                      ):
-    
-        lmc_snapshots = np.zeros((grouped_table.ngroups,grouped_table.size().values[0]))
-        
-        all_host_list_with_lmc = []
-        all_host_list_no_lmc = []
-        
-        # get data near LMC passages
-        for i,(host_key,host_group) in enumerate(grouped_table):
-            if host_key in exclude_lmc_list:
-                pass
-            else:
-                lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
-                if lmc_first_snap == '':
-                    continue
-                else:
-                    lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
-                for snap in lmc_first_snap:
-                    lmc_snap_mask = ((host_group['snapshot'].values <= (int(snap) + n_snap)) & 
-                        (host_group['snapshot'].values >= (int(snap) - n_snap)))
-                    lmc_snapshots[i] = np.array(lmc_snap_mask, dtype=int)
-                    
-                    if len(list(host_group[prop][lmc_snap_mask])) > 0:
-                        all_host_list_with_lmc = all_host_list_with_lmc + list(host_group[prop][lmc_snap_mask])
-                    
-        # get data for hosts without LMC-like passages at the same times
-        lmc_snapshots = np.sum(lmc_snapshots, axis=0)
-        any_lmc_snap_mask = lmc_snapshots > 0
-        for i,(host_key,host_group) in enumerate(grouped_table):
-            # retrieve lmc passage snapshots again
-            lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
-            if lmc_first_snap == '':
-                # no lmc present ever
-                own_lmc_snap_mask = np.zeros(len(host_group['snapshot']), dtype=bool)
-            else:
-                lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
-                for snap in lmc_first_snap:
-                    own_lmc_snap_mask = ((host_group['snapshot'].values <= (snap + n_snap)) & 
-                        (host_group['snapshot'].values >= (snap - n_snap)))
-                
-            if len(list(host_group[prop][any_lmc_snap_mask & ~own_lmc_snap_mask])) > 0:
-                if concurrent:
-                    all_host_list_no_lmc += list(host_group[prop][any_lmc_snap_mask & ~own_lmc_snap_mask])
-                else:
-                    time_mask = host_group['snapshot'].values >= snap - n_snap
-                    if host_key in exclude_host_list:
-                        pass
-                    else:
-                        all_host_list_no_lmc += list(host_group[prop][~own_lmc_snap_mask & time_mask])
-        print(len(all_host_list_with_lmc), len(all_host_list_no_lmc))
-        
-        
-        all_host_list_with_lmc = np.array(all_host_list_with_lmc)
-        plane_kde = gaussian_kde(all_host_list_with_lmc)
-        kde_x = np.linspace(np.nanmin(all_host_list_with_lmc), np.nanmax(all_host_list_with_lmc), nbins)
-        kde_y = plane_kde.evaluate(kde_x)
-        if prop in ['axis.ratio']:
-            kde_y = kde_y/100
-
-        ax.plot(kde_x, kde_y, '-.', color='#B73666', label=r'simulations with LMC')
-        ax.fill_between(kde_x, kde_y, color='#B73666', alpha=0.35)
-        if prop in ['axis.ratio']:
-            ax.vlines(np.nanmedian(all_host_list_with_lmc), 0, 
-                      plane_kde.evaluate(np.nanmedian(all_host_list_with_lmc))/100, 
-                      linestyle='-.', color='#B73666')
-        else:
-            ax.vlines(np.nanmedian(all_host_list_with_lmc), 0, 
-                      plane_kde.evaluate(np.nanmedian(all_host_list_with_lmc)), 
-                      linestyle='-.', color='#B73666')
-        
-        all_host_list_no_lmc = np.array(all_host_list_no_lmc)
-        plane_kde = gaussian_kde(all_host_list_no_lmc)
-        kde_x = np.linspace(np.nanmin(all_host_list_no_lmc), np.nanmax(all_host_list_no_lmc), nbins)
-        kde_y = plane_kde.evaluate(kde_x)
-        if prop in ['axis.ratio']:
-            kde_y = kde_y/100
-
-        ax.plot(kde_x, kde_y, color='#1A85FF', label=r'simulations without LMC')
-        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
-        if prop in ['axis.ratio']:
-            ax.vlines(np.nanmedian(all_host_list_no_lmc), 0, 
-                      plane_kde.evaluate(np.nanmedian(all_host_list_no_lmc))/100, color='#1A85FF')
-        else:
-            ax.vlines(np.nanmedian(all_host_list_no_lmc), 0, 
-                      plane_kde.evaluate(np.nanmedian(all_host_list_no_lmc)), color='#1A85FF')
-
-        ax.set_xlabel(xlabels[prop], fontsize=20)
-        ax.tick_params(axis='both', which='major', labelsize=20)
-
-    axes[3].set_ylim(0,)
-    axes[0].set_xlim((20,95))
-    axes[0].set_xticks(np.arange(25,100,15))
-    axes[0].set_xticklabels([str(i) for i in np.arange(25,100,15)])
-    axes[1].set_xticks(np.arange(0.25,1.0,0.25))
-    axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
-    axes[2].set_xlim((47,125))
-    axes[2].set_xticks(np.arange(60,140,20))
-    axes[2].set_xticklabels([str(i) for i in np.arange(60,140,20)])
-    axes[3].set_xticks(np.arange(55,100,10))
-    axes[3].set_xticklabels([str(i) for i in np.arange(55,100,10)])
-    axes[legend_ax_ind].legend(fontsize=16, handlelength=1.1, loc=1, borderaxespad=0.5)
-    if fig_name is not None:
-        fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
+    return fig
 
 def host_alignment(
     grouped_table, table_key, host_axes_dict, snap_times_table=None, redshift_limit=0.5,
@@ -1948,3 +1830,416 @@ def sub_host(sim_infall_history, snapshot_list=np.arange(0,601,1), lmc_track=Non
                             group_history['group.host.type'].append(-1)
 
     return group_history
+
+### Main simulation and observation comparisons (Figs 2 & 3)
+def plot_3D_plane_kde(
+    table_list, prop_list,
+    redshift_limit=0.2, nbins=100, 
+    xlabels={'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+            'opening.angle':'Opening angle [deg]', 
+            'orbital.pole.dispersion':'Orbital dispersion [deg]'}):
+
+    fig, axes = plt.subplots(1, 3, figsize=(12,4), sharey=True)
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
+
+    frac_below = {}
+
+    for ax, grouped_table, prop in zip(axes, table_list, prop_list):
+        all_host_list = []
+        for i,(host_key,host_group) in enumerate(grouped_table):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list = all_host_list + list(host_group[prop][redshift_mask])
+
+        all_host_list = np.array(all_host_list)
+        plane_kde = gaussian_kde(all_host_list)
+        kde_x = np.linspace(np.nanmin(all_host_list), np.nanmax(all_host_list), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop == 'axis.ratio':
+            kde_y = kde_y/100
+
+
+        norm_factor = scipy.integrate.trapz(kde_y)
+        print('norm', np.sum(kde_y)/norm_factor)
+
+
+        ax.plot(kde_x, kde_y/norm_factor, color='#972CAB', label='simulations')
+        ax.fill_between(kde_x, kde_y/norm_factor, color='#972CAB', alpha=0.3)
+        if prop == 'axis.ratio':
+            ax.vlines(np.nanmedian(all_host_list), 0, 
+                plane_kde.evaluate(np.nanmedian(all_host_list))/100/norm_factor, color='#972CAB')
+        else:
+            ax.vlines(np.nanmedian(all_host_list), 0, plane_kde.evaluate(np.nanmedian(all_host_list))/norm_factor, color='#972CAB')
+
+        ax.set_xlabel(xlabels[prop], fontsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=20)
+
+        
+        # confidence limits with proper uncertainty sampling & angle values for angle enclosing 100% of satellites
+        # WITH SgrI
+        MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
+        MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
+        MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
+
+        # random orbital pole dispersion calc, that counts counter-orbit as aligned
+        #MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':40}
+        #MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[37,44]}
+        #MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[35,46]}
+
+        ax.axvline(MW_values[prop], color='k', linestyle='--', label='Milky Way')
+        ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
+        ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
+
+        print(prop, len(all_host_list), np.nanpercentile(all_host_list, 16), 
+            np.sum(all_host_list <= MW_uncerts_68[prop][1])/all_host_list.size)
+        frac_below[prop] = np.sum(all_host_list <= MW_uncerts_68[prop][1])/all_host_list.size
+
+    axes[0].set_ylim(0, 0.03)
+    axes[0].set_yticks(np.arange(0,0.04,0.01))
+    axes[2].set_xticks(np.arange(50, 110, 10))
+    axes[0].legend(fontsize=18, handlelength=1.1, loc='upper center', borderaxespad=0.15)
+    axes[0].set_ylabel('Probability density', fontsize=20)
+
+    # write the fraction of snapshots that fall at or below the MW median on each panel
+    # and adjust ticks
+    for ax, prop in zip(axes, prop_list):
+        ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
+        ax.text(ax.get_xlim()[1] - 0.11*ax_width, 0.0275, '{:.0f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.tick_params(axis='y', which='both', right=False)
+        ax.tick_params(axis='y', which='minor', left=False)
+
+    plt.show()
+
+    return fig
+
+def plot_m31_iter_plane_kde(
+    dist_list, prop_list,
+    redshift_limit=0.2, nbins=100, 
+    xlabels={'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+           'opening.angle':'Opening angle [deg]', 
+           'coherent.frac':'Coherent velocity fraction'}):
+
+    fig, axes = plt.subplots(1, 3, figsize=(12,4))
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.08, right=0.95, top=0.97, bottom=0.2, wspace=0)
+    frac_below = {}
+    for ax, prop_table, prop in zip(axes, dist_list, prop_list):
+        all_host_list = []
+        for host in prop_table.keys():
+            for z in prop_table[host]:
+                z = z[~np.isnan(z)]
+                all_host_list = all_host_list + list(z)
+
+        all_host_list = np.array(all_host_list)
+
+        if prop == 'coherent.frac':
+            ax.set_ylim(0, 0.8)
+            n, b = np.histogram(all_host_list, bins=np.arange(0.533, 1.05, 0.067))#8)
+            n = n/np.nansum(n)
+            plt.bar(b[:-1], n, align='center', color="green", alpha=0.3, 
+                    linewidth=2, edgecolor='green', width=0.067)
+
+            y = n[np.searchsorted(b[:-1], np.nanmedian(all_host_list))]/ax.get_ylim()[1]
+            ax.axvline(np.nanmedian(all_host_list), 0, y, color='green')
+
+        else:
+            plane_kde = gaussian_kde(all_host_list)
+            kde_x = np.linspace(np.nanmin(all_host_list), np.nanmax(all_host_list), nbins)
+            kde_y = plane_kde.evaluate(kde_x)
+            if prop in ['axis.ratio', 'coherent.frac']:
+                kde_y = kde_y/100
+
+
+            norm_factor = scipy.integrate.trapz(kde_y)
+            #print('norm', np.sum(kde_y)/norm_factor)
+
+
+            ax.plot(kde_x, kde_y/norm_factor, color='green', label='simulations')
+            ax.fill_between(kde_x, kde_y/norm_factor, color='green', alpha=0.3)
+            if prop in ['axis.ratio', 'coherent.frac']:
+                ax.vlines(np.nanmedian(all_host_list), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list))/100/norm_factor, color='green')
+            else:
+                ax.vlines(np.nanmedian(all_host_list), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list))/norm_factor, color='green')
+
+            #print(prop, len(all_host_list), np.nanpercentile(all_host_list, 16))
+
+        ax.set_xlabel(xlabels[prop], fontsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=20)
+
+        
+        # 68% limits with proper uncertainty sampling & angle values for angle enclosing 100% of satellites
+        M31_values = {'rms.min':50, 'axis.ratio':0.36, 'opening.angle':36, 'coherent.frac':0.67}
+        M31_uncerts = {'rms.min':[49,51], 'axis.ratio':[0.31,0.45], 'opening.angle':[28,42], 
+                    'coherent.frac':[0.67,0.67]}
+        M31_uncerts_95 = {'rms.min':[45,52], 'axis.ratio':[0.28,0.54], 'opening.angle':[24,46], 
+                    'coherent.frac':[None,None]}
+
+        ax.axvline(M31_values[prop], color='k', linestyle=':', linewidth=2.5, label='M31')
+        ax.axvspan(M31_uncerts[prop][0], M31_uncerts[prop][1], color='k', alpha=0.25)
+        ax.axvspan(M31_uncerts_95[prop][0], M31_uncerts_95[prop][1], color='k', alpha=0.25)
+
+        frac_below[prop] = np.sum(all_host_list <= M31_uncerts[prop][1])/all_host_list.size
+        #print(prop, np.sum(all_host_list > M31_uncerts[prop][1]), np.sum(all_host_list <= M31_values[prop])/all_host_list.size)
+
+    axes[0].set_ylim(0, 0.04)
+    axes[0].set_xlim(15, 105)
+    axes[0].set_yticks(np.arange(0,0.05,0.01))
+    axes[0].set_xticks(np.arange(20,120,20))
+    axes[0].tick_params(axis='y', which='both', right=False)
+    #axes[0].set_xticklabels(['10','20','30','40', '50'])
+
+    axes[1].set_ylim(0, 0.04)
+    axes[1].set_xlim(0.1, 0.95)
+    axes[1].set_yticks(np.arange(0,0.05,0.01))
+    axes[1].set_xticks(np.arange(0.2,1.0,0.2))
+    #axes[1].set_xticklabels(['0.2','0.3','0.4', '0.5'])
+    axes[1].tick_params(axis='y', which='both', right=False)
+    axes[1].tick_params(axis='y', which='major', labelleft=False)
+
+    axes[2].set_ylim(0, 0.8)
+    #axes[2].set_yticks(np.arange(0,0.25,0.05))
+    axes[2].set_xticks(np.arange(0.5,1.1,0.1))
+    axes[2].set_xticklabels(['0.5','0.6','0.7','0.8','0.9','1.0'])
+    axes[2].set_xlim((0.48,1.02))
+    axes[2].tick_params(axis='y', which='both', left=False, labelright=True)
+    axes[2].tick_params(axis='y', which='major', labelleft=False)
+
+    axes[0].legend(fontsize=18, handlelength=1.1, loc=1, borderaxespad=0.05)
+    axes[0].set_ylabel('Probability density', fontsize=20)
+
+    # write the fraction of snapshots that fall at or below the MW median on each panel
+    # and adjust ticks
+    for ax, prop, txtpos in zip(axes, ['rms.min', 'axis.ratio', 'coherent.frac'], ['upperleft', 'upperleft', 'upperright']):
+        ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
+        if txtpos == 'upperleft':
+            ax.text(ax.get_xlim()[0] + 0.03*ax_width, 0.037, '{:.0f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
+        elif txtpos == 'upperright':
+            ax.text(ax.get_xlim()[1] - 0.14*ax_width, 0.74, '{:.0f}%'.format(100*(1.0-frac_below[prop])), ha='left', fontsize=16)
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.tick_params(axis='y', which='minor', left=False, right=False)
+
+    plt.show()
+
+    return fig
+
+def planar_frac_vs_angle(tbl_prefix, prop, MW_plane_value, angle_bin=3, data_path='./'):
+    _mask_at_deg = []
+    _frac_at_deg = []
+    for deg in np.arange(0,90+angle_bin,angle_bin):
+        _table = pd.read_csv(data_path+tbl_prefix+'_table_z02_{}deg.txt'.format(int(deg)), sep=' ')
+        grouped_table = _table.groupby(['host'])
+
+        frac_plane_values = []
+        for i,(host_key,host_group) in enumerate(grouped_table):
+            frac_plane_values.append(host_group[prop])
+            planar_frac = np.sum(host_group[prop] <= MW_plane_value)/grouped_table.size()[0]
+        frac_plane_values = np.asarray(frac_plane_values).flatten()
+        _frac_at_deg.append(np.sum(frac_plane_values <= MW_plane_value)/frac_plane_values.size)
+        _mask_at_deg.append(frac_plane_values <= MW_plane_value)
+    return _frac_at_deg, np.array(_mask_at_deg)
+
+def plot_host_disk_incompleteness(data_path='./', MW_planes=None, angle_bin=3):
+    _prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
+        'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
+    fig, ax = plt.subplots(1, 1, figsize=(7,6))
+    fig.set_tight_layout(False)
+    fig.subplots_adjust(left=0.15, right=0.97, top=0.97, bottom=0.15)
+
+    x = np.arange(0,93,3)
+
+    ax.arrow(12, 0.61, 0, -0.2, head_width=0.5, head_length=0.05, length_includes_head=True, linewidth=2, fc='k', ec='k', alpha=0.9)
+
+    axis_frac_at_deg, axis_mask = planar_frac_vs_angle(
+        'axis_ratio', 'axis.ratio', MW_planes['axis.ratio'], angle_bin=3, data_path=data_path)
+    plt.plot(x, axis_frac_at_deg/axis_frac_at_deg[0], alpha=0.9, linestyle='-.', linewidth=2.5, label='Axis ratio')
+    #print(x[0], axis_frac_at_deg[0])
+    #print(x[4], (axis_frac_at_deg/axis_frac_at_deg[0])[4])
+
+    rms_frac_at_deg, rms_mask = planar_frac_vs_angle(
+        'rms', 'min.rms', MW_planes['rms.min'], angle_bin=3, data_path=data_path)
+    plt.plot(x, rms_frac_at_deg/rms_frac_at_deg[0], alpha=0.9, linestyle='--', linewidth=2.5, label='RMS height')
+    #print(x[0], rms_frac_at_deg[0])
+    #print(x[4], (rms_frac_at_deg/rms_frac_at_deg[0])[4])
+
+    orb_frac_at_deg, orb_mask = planar_frac_vs_angle(
+        'orb', 'orbital.pole.dispersion', MW_planes['orbital.pole.dispersion'], 
+        angle_bin=3, data_path=data_path)
+    plt.plot(x, orb_frac_at_deg/orb_frac_at_deg[0], alpha=0.9, linestyle='-', linewidth=2.5, label='Orbital dispersion')
+    #print(x[0], orb_frac_at_deg[0])
+    #print(x[4], (orb_frac_at_deg/orb_frac_at_deg[0])[4]**(-1))
+
+    ax.hlines(1, 0, 90, color='k', linestyle=':', alpha=0.4)
+
+    #ax.axvspan(30, 90, color='k', ec='none', alpha=0.3)
+
+    ax.tick_params(axis='both', which='both', labelsize=20, top=False, direction='out')
+    ax.set_xticks(np.arange(0,120,15))
+    #ax.set_xticklabels(['0', '', '30', '', '60', '', '90'])
+    ax.set_xticks(x, minor=True)
+    plt.xlim((0,30))
+    plt.xlabel(r'Host disk obscured region [$\pm b \degree$]', fontsize=20)
+    plt.ylabel('Relative incidence of MW planes', fontsize=20)
+    plt.ylim((0.4, 100))
+    plt.yscale('log')
+    plt.legend(loc=2, borderaxespad=1, handlelength=1.2, fontsize=18)
+    plt.show()
+
+    return fig
+
+def plot_compare_2_plane_kde(
+    grouped_tables_nsat, grouped_tables_sm, prop_list,
+    redshift_limit=0.2, nbins=100, 
+    xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+           'opening.angle':'Opening angle [deg]', 
+           'orbital.pole.dispersion':'Orbital dispersion [deg]'}):
+
+    fig, axes = plt.subplots(1, 3, figsize=(12,4), sharey=True)
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
+
+    for ax, grouped_table_sm, grouped_table_nsat, prop in zip(
+        axes, grouped_tables_sm, grouped_tables_nsat, prop_list):
+        # number of satellites selection
+        all_host_list_nsat = []
+        for i,(host_key,host_group) in enumerate(grouped_table_nsat):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_nsat = all_host_list_nsat + list(host_group[prop][redshift_mask])
+
+        #print(prop, len(all_host_list_nsat), np.nanpercentile(all_host_list_nsat, 16))
+    
+        all_host_list_nsat = np.array(all_host_list_nsat)
+        plane_kde = gaussian_kde(all_host_list_nsat)
+        kde_x = np.linspace(np.nanmin(all_host_list_nsat), np.nanmax(all_host_list_nsat), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        ax.plot(kde_x, kde_y, '-.', color='#B73666', label=r'simulations: $\rm{N}_{\rm sat}=14$')
+        ax.fill_between(kde_x, kde_y, color='#B73666', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat))/100, 
+                    linestyle='-.', color='#B73666')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_nsat), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_nsat)), 
+                    linestyle='-.', color='#B73666')
+            
+        
+        # stellar mass selection
+        all_host_list_sm = []
+        for i,(host_key,host_group) in enumerate(grouped_table_sm):
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            all_host_list_sm = all_host_list_sm + list(host_group[prop][redshift_mask])
+
+        #print(prop, len(all_host_list_sm), np.nanpercentile(all_host_list_sm, 16))
+        
+        all_host_list_sm = np.array(all_host_list_sm)
+        plane_kde = gaussian_kde(all_host_list_sm)
+        kde_x = np.linspace(np.nanmin(all_host_list_sm), np.nanmax(all_host_list_sm), nbins)
+        kde_y = plane_kde.evaluate(kde_x)
+        if prop in ['axis.ratio']:
+            kde_y = kde_y/100
+
+        ax.plot(kde_x, kde_y, color='#1A85FF', label=r'simulations: $\rm{M}_{*, sat}\geq10^5\, \rm{M}_{\odot}$')
+        ax.fill_between(kde_x, kde_y, color='#1A85FF', alpha=0.35)
+        if prop in ['axis.ratio']:
+            ax.vlines(np.nanmedian(all_host_list_sm), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_sm))/100, color='#1A85FF')
+        else:
+            ax.vlines(np.nanmedian(all_host_list_sm), 0, 
+                    plane_kde.evaluate(np.nanmedian(all_host_list_sm)), color='#1A85FF')
+
+        ax.set_xlabel(xlabels[prop], fontsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='x', which='both', top=False)
+        ax.tick_params(axis='y', which='both', right=False)
+        ax.tick_params(axis='y', which='minor', left=False)
+
+    axes[0].set_ylabel('Probability density', fontsize=20)
+    axes[0].set_ylim(0,)
+    axes[0].set_xlim((20,105))
+    axes[0].set_xticks(np.arange(25,125,25))
+    axes[0].set_xticklabels([str(i) for i in np.arange(25,125,25)])
+    axes[1].set_xticks(np.arange(0.25,1.0,0.25))
+    axes[1].set_xticklabels([str(i) for i in np.arange(0.25,1.0,0.25)])
+    axes[2].set_xticks(np.arange(50,100,10))
+    axes[2].set_xticklabels([str(i) for i in np.arange(50,100,10)])
+    axes[0].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
+    plt.show()
+
+    return fig
+
+def plane_sig_3_panel(
+    grouped_table_list, y_type_list, y_type_isotropic_list, redshift_limit=0.2, 
+    probability=True):
+    fig, (ax1,ax2,ax3) = plt.subplots(3, 1, figsize=(12, 8), sharex=True, sharey=True)
+    fig.set_tight_layout(False)
+    fig.subplots_adjust(left=0.1, right=0.99, top=0.98, bottom=0.05, wspace=0, hspace=0)
+    
+    for ax, grouped_table, y_type, y_type_isotropic in zip([ax1,ax2,ax3],
+                                                            grouped_table_list, 
+                                                            y_type_list, 
+                                                            y_type_isotropic_list):
+        
+        # with SgrI, rms and angle have 1k iter, others have 10k
+        mw_iso_frac = {'rms.min':0.002, 'axis.ratio':0.003, 'opening.angle':0.108, 
+                       'orbital.pole.dispersion':0.005}
+
+        # plot median/scatter across hosts normalized to average isotropic value
+        x_labels = []# ['MW']
+
+        for i, (host_key,host_group) in enumerate(grouped_table):
+            x_labels.append(host_key)
+            redshift_mask = host_group['redshift'] <= redshift_limit
+            norm_stack = np.array(host_group[y_type_isotropic].values[redshift_mask])
+            ax.vlines(i, np.nanpercentile(norm_stack, 2.5), np.percentile(norm_stack, 97.5), 
+                        color='k', linestyle='-', lw=2.5, alpha=0.6)
+            #ax.vlines(i+1, np.nanpercentile(norm_stack, 16), np.percentile(norm_stack, 84), 
+            #            color='k', linestyle='-', lw=3, alpha=0.6)
+            if (np.nanpercentile(norm_stack, 2.5) < 0.05) & (np.nanmedian(norm_stack) < 0.25):
+                ax.plot(i, np.nanmedian(norm_stack), marker='o', color='mediumturquoise', mec='k')
+            #elif (np.nanpercentile(norm_stack, 2.5) < 0.05) & (np.nanmedian(norm_stack) < 0.5):
+            #    ax.plot(i+1, np.nanmedian(norm_stack), marker='o', color='teal', mec='k')
+            else:
+                ax.plot(i, np.nanmedian(norm_stack), marker='o', color='k', mec='k')
+            ax.axhline(0.5, color='k', linestyle=(0, (1, 3)), linewidth=1.2, alpha=0.15)#more sparsely dotted line
+            #print(host_key, np.median(norm_stack))
+        
+        ax.set_xticks(np.arange(0, len(x_labels)))
+        ax.set_xlim((-0.5, len(x_labels)-0.5))
+        #_titles = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
+        #           'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
+        _titles = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
+                   'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
+        ax.legend(title=_titles[y_type], loc='upper right', title_fontsize=20, borderaxespad=0.6)
+        ax.set_ylim((-0.05,1.1))
+        ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
+        ax.set_yticklabels(['0', '', '0.5', '', '1'])
+        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='x', which='minor', bottom=False, labelbottom=False, top=False, size=20)
+    ax1.tick_params(axis='x', which='major', bottom=False, top=False)
+    #ax1.set_xticklabels(x_labels, fontsize=12)
+    ax2.tick_params(axis='x', which='major', bottom=False, top=False)
+    ax3.tick_params(axis='x', which='major', bottom=False, labelbottom=True, top=False)
+    ax3.set_xticklabels(x_labels, fontsize=15)
+    
+    fig.text(0.01, 0.5, r'Fraction of random isotropic realizations with', 
+        va='center', rotation='vertical', fontsize=20)
+    fig.text(0.035, 0.5, r'more planar satellite distributions [$f_{\rm iso}$]', va='center', rotation='vertical', 
+        fontsize=20)
+    plt.show()
+
+    return fig
