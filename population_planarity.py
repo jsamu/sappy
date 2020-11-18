@@ -1383,6 +1383,47 @@ def plot_plane_significance_2panel(
         
     return fig
 
+def simul_lmc_passages(
+    grouped_table_list, y_type_list, host_table, 
+    lmc_key='snap.first.lmc.passage',
+    exclude_host_list=[], exclude_lmc_list=[], 
+    n_snap=5, MW=False):
+    lmc_metrics = {}
+    for grouped_table, prop in zip([grouped_table_list[0], grouped_table_list[1], grouped_table_list[2]],
+                                       [y_type_list[0], y_type_list[1], y_type_list[2]]
+                                      ):
+    
+        lmc_snapshots = np.zeros((grouped_table.ngroups,grouped_table.size().values[0]))
+        
+        all_host_list_with_lmc = []
+        all_host_list_no_lmc = []
+        snap_limit = 600
+        
+        # get data near LMC passages
+        for i,(host_key,host_group) in enumerate(grouped_table):
+            if host_key in exclude_lmc_list:
+                pass
+            else:
+                lmc_first_snap = host_table[lmc_key][host_table['host'] == host_key].values[0][1:-1]
+                if lmc_first_snap == '':
+                    continue
+                else:
+                    lmc_first_snap = [int(x) for x in lmc_first_snap.rsplit(' ')]
+                for snap in lmc_first_snap:
+                    lmc_snap_mask = ((host_group['snapshot'].values <= (int(snap) + n_snap)) & 
+                        (host_group['snapshot'].values >= (int(snap) - n_snap)))
+                    lmc_snapshots[i] = np.array(lmc_snap_mask, dtype=int)
+                    
+                    if len(list(host_group[prop][lmc_snap_mask])) > 0:
+                        all_host_list_with_lmc = all_host_list_with_lmc + list(host_group[prop][lmc_snap_mask])
+                    snap_limit = min(min(host_group['snapshot'][lmc_snap_mask]), snap_limit)
+        lmc_metrics[prop] = np.array(all_host_list_with_lmc)
+        
+    simultaneous_mask = (lmc_metrics['axis.ratio'] <= 0.24) & (lmc_metrics['orbital.pole.dispersion'] <= 67)
+    print('axorb', np.sum(simultaneous_mask)/44)
+    simultaneous_mask = (lmc_metrics['rms.min'] <= 28) & (lmc_metrics['orbital.pole.dispersion'] <= 67)
+    print('rmsorb', np.sum(simultaneous_mask)/44)
+
 def kde_lmc_passages(
     grouped_table_list, y_type_list, host_table, 
     lmc_key='snap.first.lmc.passage', fig_name=None, 
@@ -1400,6 +1441,7 @@ def kde_lmc_passages(
     plt.rc('font', **font)
     fig.subplots_adjust(left=0.08, right=0.99, top=0.97, bottom=0.2, wspace=0)
     frac_below = {}
+    frac_below2 = {}
     for ax, grouped_table, prop in zip(axes, 
                                        [grouped_table_list[0], grouped_table_list[1], grouped_table_list[2]],
                                        [y_type_list[0], y_type_list[1], y_type_list[2]]
@@ -1513,6 +1555,7 @@ def kde_lmc_passages(
             ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
             ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
             frac_below[prop] = np.sum(all_host_list_with_lmc<= MW_uncerts_68[prop][1])/all_host_list_with_lmc.size
+            frac_below2[prop] = np.sum(all_host_list_no_lmc<= MW_uncerts_68[prop][1])/all_host_list_no_lmc.size
 
     axes[0].set_ylabel('Probability density', fontsize=20)
     axes[0].set_ylim(0,0.03)
@@ -1524,13 +1567,15 @@ def kde_lmc_passages(
     axes[2].set_xticks(np.arange(55,100,10))
     axes[2].set_xticklabels([str(i) for i in np.arange(55,100,10)])
     axes[legend_ax_ind].legend(fontsize=16, handlelength=1.1, loc=legend_pos, 
-        ncol=legend_ncol, borderaxespad=0.5)
+        ncol=legend_ncol, borderaxespad=0.8)
 
     if MW:
         for ax, prop in zip(axes, y_type_list):
             ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
-            ax.text(ax.get_xlim()[1] - 0.16*ax_width, 0.0275, 
-                '{:.1f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
+            ax.text(ax.get_xlim()[1] - 0.025*ax_width, 0.0275, 
+                '{:.0f}%'.format(100*frac_below[prop]), ha='right', fontsize=16, color='#B73666')
+            ax.text(ax.get_xlim()[1] - 0.025*ax_width, 0.025, 
+                '{:.0f}%'.format(100*frac_below2[prop]), ha='right', fontsize=16, color='#1A85FF')
     if fig_name is not None:
         fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
 
