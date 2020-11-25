@@ -10,7 +10,8 @@ class GalaxyGas():
         radius_factor=2, vel_factor=2):
         # needs to be gas particle data only, and table read from file only
         self.sat_gas_ind = self.get_sat_gas_indices(
-            gas_particle_data, galaxy_table
+            gas_particle_data, galaxy_table, radius_type=radius_type,
+            radius_factor=radius_factor, vel_factor=vel_factor
         )
         self.gas_props = None
 
