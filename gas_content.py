@@ -35,7 +35,7 @@ class GalaxyGas():
         if self.gas_props is None:
             gas_props = self.get_gas_props(gas_particle_data)
         for gas_key in self.gas_props.keys():
-            galaxy_table[gas_key] = gas_props[gas_key]
+            galaxy_table[gas_key] = self.gas_props[gas_key]
         if file_name is not None:
             galaxy_table.to_csv(file_name, sep=' ', index=False)
 
