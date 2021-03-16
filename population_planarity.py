@@ -17,9 +17,9 @@ import satellite_analysis as sa
 ########################
 
 def color_cycle(cycle_length=14, cmap_name='plasma', low=0, high=1):
-    cm_subsection = np.linspace(low, high, cycle_length)
+    #cm_subsection = np.linspace(low, high, cycle_length)
     cmap=plt.get_cmap(cmap_name)
-    colors = [cmap(x) for x in cm_subsection]
+    colors = cmap(np.linspace(low, high, cycle_length))#[cmap(x) for x in cm_subsection]
 
     return colors
     
@@ -1183,7 +1183,7 @@ def plot_plane_significance_2panel(
 def plane_sig_3_panel(
     grouped_table_list, y_type_list, y_type_isotropic_list, redshift_limit=0.2, 
     probability=True):
-    fig, (ax1,ax2,ax3) = plt.subplots(3, 1, figsize=(12, 8), sharex=True, sharey=True)
+    fig, (ax1,ax2,ax3) = plt.subplots(3, 1, figsize=(10.5, 6), sharex=True, sharey=True)
     fig.set_tight_layout(False)
     fig.subplots_adjust(left=0.1, right=0.99, top=0.98, bottom=0.05, wspace=0, hspace=0)
     
@@ -1219,22 +1219,22 @@ def plane_sig_3_panel(
 
         _titles = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
                    'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
-        ax.legend(title=_titles[y_type], loc='upper right', title_fontsize=20, borderaxespad=0.6)
+        ax.legend(title=_titles[y_type], loc='upper right', title_fontsize=18, borderaxespad=0.6)
         ax.set_ylim((-0.05,1.1))
         ax.set_yticks([0, 0.25, 0.5, 0.75, 1])
         ax.set_yticklabels(['0', '', '0.5', '', '1'])
-        ax.tick_params(axis='both', which='major', labelsize=20)
+        ax.tick_params(axis='both', which='major', labelsize=18)
         ax.tick_params(axis='x', which='minor', bottom=False, labelbottom=False, top=False, size=20)
     ax1.tick_params(axis='x', which='major', bottom=False, top=False)
     #ax1.set_xticklabels(x_labels, fontsize=12)
     ax2.tick_params(axis='x', which='major', bottom=False, top=False)
     ax3.tick_params(axis='x', which='major', bottom=False, labelbottom=True, top=False)
-    ax3.set_xticklabels(x_labels, fontsize=15)
+    ax3.set_xticklabels(x_labels, fontsize=13)
     
     fig.text(0.01, 0.5, r'Fraction of random isotropic realizations with', 
-        va='center', rotation='vertical', fontsize=20)
+        va='center', rotation='vertical', fontsize=18)
     fig.text(0.035, 0.5, r'more planar satellite distributions [$f_{\rm iso}$]', va='center', rotation='vertical', 
-        fontsize=20)
+        fontsize=18)
     plt.show()
 
     return fig
@@ -1408,7 +1408,14 @@ def plot_3D_plane_kde(
     redshift_limit=0.2, nbins=100, 
     xlabels={'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
             'opening.angle':'Opening angle [deg]', 
-            'orbital.pole.dispersion':'Orbital dispersion [deg]'}):
+            'orbital.pole.dispersion':'Orbital dispersion [deg]'},
+    MW_values={'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60},
+    MW_uncerts_68={'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]},
+    MW_uncerts_95={'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]},
+    MW_bound='68'):
+
+    MW_bound_dict = {'68':MW_uncerts_68, '95':MW_uncerts_95}
+    MW_uncert_bound = MW_bound_dict[MW_bound]
 
     fig, axes = plt.subplots(1, 3, figsize=(12,4), sharey=True)
     fig.set_tight_layout(False)
@@ -1451,9 +1458,9 @@ def plot_3D_plane_kde(
         
         # confidence limits with proper uncertainty sampling & angle values for angle enclosing 100% of satellites
         # WITH SgrI
-        MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
-        MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
-        MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
+        #MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
+        #MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
+        #MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
 
         # random orbital pole dispersion calc, that counts counter-orbit as aligned
         #MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':40}
@@ -1466,7 +1473,7 @@ def plot_3D_plane_kde(
 
         print(prop, len(all_host_list), np.nanpercentile(all_host_list, 16), 
             np.sum(all_host_list <= MW_uncerts_68[prop][1])/all_host_list.size)
-        frac_below[prop] = np.sum(all_host_list <= MW_uncerts_68[prop][1])/all_host_list.size
+        frac_below[prop] = np.sum(all_host_list <= MW_uncert_bound[prop][1])/all_host_list.size
 
     axes[0].set_ylim(0, 0.03)
     axes[0].set_yticks(np.arange(0,0.04,0.01))
@@ -1618,7 +1625,8 @@ def planar_frac_vs_angle(tbl_prefix, prop, MW_plane_value, angle_bin=3, data_pat
         _mask_at_deg.append(frac_plane_values <= MW_plane_value)
     return _frac_at_deg, np.array(_mask_at_deg)
 
-def plot_host_disk_incompleteness(data_path='./', MW_planes=None, angle_bin=3):
+def plot_host_disk_incompleteness(
+    data_path='./', MW_planes=None, angle_bin=3, ylim=(0.4, 100)):
     _prop_labels = {'rms.min':'RMS height', 'axis.ratio':'Axis ratio', 
         'opening.angle':'Opening angle', 'orbital.pole.dispersion':'Orbital dispersion'}
     fig, ax = plt.subplots(1, 1, figsize=(7,6))
@@ -1659,7 +1667,7 @@ def plot_host_disk_incompleteness(data_path='./', MW_planes=None, angle_bin=3):
     plt.xlim((0,30))
     plt.xlabel(r'Host disk obscured region [$\pm b \degree$]', fontsize=20)
     plt.ylabel('Relative incidence of MW planes', fontsize=20)
-    plt.ylim((0.4, 100))
+    plt.ylim(ylim)
     plt.yscale('log')
     plt.legend(loc=2, borderaxespad=1, handlelength=1.2, fontsize=18)
     plt.show()
@@ -1749,6 +1757,84 @@ def plot_compare_2_plane_kde(
     axes[2].set_xticks(np.arange(50,100,10))
     axes[2].set_xticklabels([str(i) for i in np.arange(50,100,10)])
     axes[0].legend(fontsize=16, handlelength=1.1, loc=2, borderaxespad=0.5)
+    plt.show()
+
+    return fig
+
+def plot_orb_kde(
+    grouped_table, prop,
+    redshift_limit=0.2, nbins=100, 
+    xlabels={'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
+            'opening.angle':'Opening angle [deg]', 
+            'orbital.pole.dispersion':'Orbital dispersion [deg]'},
+    MW_values={'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60},
+    MW_uncerts_68={'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]},
+    MW_uncerts_95={'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]},
+    MW_bound='68'):
+
+    MW_bound_dict = {'68':MW_uncerts_68, '95':MW_uncerts_95}
+    MW_uncert_bound = MW_bound_dict[MW_bound]
+
+    fig, ax = plt.subplots(1, 1, figsize=(5,4))
+    fig.set_tight_layout(False)
+
+    font = {'size'   : 14}
+    plt.rc('font', **font)
+    fig.subplots_adjust(left=0.2, right=0.97, top=0.97, bottom=0.2, wspace=0)
+
+    frac_below = {}
+
+    
+    all_host_list = []
+    for i,(host_key,host_group) in enumerate(grouped_table):
+        redshift_mask = host_group['redshift'] <= redshift_limit
+        all_host_list = all_host_list + list(host_group[prop][redshift_mask])
+
+    all_host_list = np.array(all_host_list)
+    plane_kde = gaussian_kde(all_host_list)
+    kde_x = np.linspace(np.nanmin(all_host_list), np.nanmax(all_host_list), nbins)
+    kde_y = plane_kde.evaluate(kde_x)
+    if prop == 'axis.ratio':
+        kde_y = kde_y/100
+
+
+    norm_factor = scipy.integrate.trapz(kde_y)
+    print('norm', np.sum(kde_y)/norm_factor)
+
+
+    ax.plot(kde_x, kde_y/norm_factor, color='#972CAB', label='simulations')
+    ax.fill_between(kde_x, kde_y/norm_factor, color='#972CAB', alpha=0.3)
+    if prop == 'axis.ratio':
+        ax.vlines(np.nanmedian(all_host_list), 0, 
+            plane_kde.evaluate(np.nanmedian(all_host_list))/100/norm_factor, color='#972CAB')
+    else:
+        ax.vlines(np.nanmedian(all_host_list), 0, plane_kde.evaluate(np.nanmedian(all_host_list))/norm_factor, color='#972CAB')
+
+    ax.set_xlabel(xlabels[prop], fontsize=20)
+    ax.tick_params(axis='both', which='major', labelsize=20)
+
+    ax.axvline(MW_values[prop], color='k', linestyle='--', label='Milky Way')
+    ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
+    ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
+
+    print(prop, len(all_host_list), np.nanpercentile(all_host_list, 16), 
+        np.sum(all_host_list <= MW_uncerts_68[prop][1])/all_host_list.size)
+    frac_below[prop] = np.sum(all_host_list <= MW_uncert_bound[prop][1])/all_host_list.size
+
+    ax.set_ylim(0, 0.03)
+    ax.set_yticks(np.arange(0,0.04,0.01))
+    ax.set_xticks(np.arange(50, 110, 10))
+    #ax.legend(fontsize=18, handlelength=1.1, loc='upper center', borderaxespad=0.15)
+    ax.set_ylabel('Probability density', fontsize=20)
+
+    # write the fraction of snapshots that fall at or below the MW median on each panel
+    # and adjust ticks
+    ax_width = ax.get_xlim()[1] - ax.get_xlim()[0]
+    ax.text(ax.get_xlim()[1] - 0.13*ax_width, 0.0275, '{:.1f}%'.format(100*frac_below[prop]), ha='left', fontsize=16)
+    ax.tick_params(axis='x', which='both', top=False)
+    ax.tick_params(axis='y', which='both', right=False)
+    ax.tick_params(axis='y', which='minor', left=False)
+
     plt.show()
 
     return fig
@@ -1922,7 +2008,15 @@ def kde_lmc_passages(
     lmc_key='snap.first.lmc.passage', fig_name=None, 
     legend_ax_ind=0, legend_pos=2, legend_ncol=1,
     exclude_host_list=[], exclude_lmc_list=[], 
-    n_snap=5, MW=False):
+    n_snap=5, MW=False,
+    MW_values={'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60},
+    MW_uncerts_68={'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]},
+    MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]},
+    MW_bound='68'):
+
+    MW_bound_dict = {'68':MW_uncerts_68, '95':MW_uncerts_95}
+    MW_uncert_bound = MW_bound_dict[MW_bound]
+
     nbins = 100
     xlabels = {'rms.min':'RMS height [kpc]', 'axis.ratio':'Axis ratio [c/a]', 
                'opening.angle':'Opening angle [deg]', 'orbital.pole.dispersion':'Orbital dispersion [deg]'}
@@ -2015,6 +2109,7 @@ def kde_lmc_passages(
 
         # snaps without LMC's
         all_host_list_no_lmc = np.array(all_host_list_no_lmc)
+        all_host_list_no_lmc = all_host_list_no_lmc[~np.isnan(all_host_list_no_lmc)]
         plane_kde = gaussian_kde(all_host_list_no_lmc)
         kde_x = np.linspace(np.nanmin(all_host_list_no_lmc), np.nanmax(all_host_list_no_lmc), nbins)
         kde_y = plane_kde.evaluate(kde_x)
@@ -2041,14 +2136,11 @@ def kde_lmc_passages(
         if MW:
             # confidence limits with proper uncertainty sampling & angle values for angle enclosing 100% of satellites
             # WITH SgrI
-            MW_values = {'rms.min':27, 'axis.ratio':0.23, 'opening.angle':75, 'orbital.pole.dispersion':60}
-            MW_uncerts_68 = {'rms.min':[27,28], 'axis.ratio':[0.23,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[54,67]}
-            MW_uncerts_95 = {'rms.min':[26,28], 'axis.ratio':[0.22,0.24], 'opening.angle':[72,75], 'orbital.pole.dispersion':[51,74]}
             ax.axvline(MW_values[prop], color='k', linestyle='--', label='MW')
             ax.axvspan(MW_uncerts_68[prop][0], MW_uncerts_68[prop][1], color='k', alpha=0.3)
             ax.axvspan(MW_uncerts_95[prop][0], MW_uncerts_95[prop][1], color='k', alpha=0.25)
-            frac_below[prop] = np.sum(all_host_list_with_lmc<= MW_uncerts_68[prop][1])/all_host_list_with_lmc.size
-            frac_below2[prop] = np.sum(all_host_list_no_lmc<= MW_uncerts_68[prop][1])/all_host_list_no_lmc.size
+            frac_below[prop] = np.sum(all_host_list_with_lmc<= MW_uncert_bound[prop][1])/all_host_list_with_lmc.size
+            frac_below2[prop] = np.sum(all_host_list_no_lmc<= MW_uncert_bound[prop][1])/all_host_list_no_lmc.size
 
     axes[0].set_ylabel('Probability density', fontsize=20)
     axes[0].set_ylim(0,0.03)
@@ -2072,7 +2164,7 @@ def kde_lmc_passages(
     plt.show()
 
     if fig_name is not None:
-        fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=300, quality=95)
+        fig.savefig('/Users/jsamuel/Desktop/'+fig_name, dpi=100, quality=95)
     
     return fig
 

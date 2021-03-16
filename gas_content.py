@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import utilities as ut
 from collections import defaultdict
+from numba import jit
+from astropy.utils.console import ProgressBar
 
 
 class GalaxyGas():
@@ -60,6 +62,7 @@ class GalaxyGas():
         gas_particle_vel = gas_particle_data.prop('host.velocity')
 
         sat_gas_indices = []
+        """
         for sat_pos, sat_vel, rad_lim, vel_lim in zip(
             sat_position, sat_velocity, radius_limit, velocity_limit):
             pos_mask = ut.coordinate.get_distances(sat_pos, gas_particle_pos, 
@@ -67,6 +70,25 @@ class GalaxyGas():
             vel_mask = ut.coordinate.get_distances(sat_vel, gas_particle_vel, 
                 total_distance=True) < vel_lim
             sat_gas_indices.append(np.where(pos_mask & vel_mask)[0])
+        """
+        """
+        @jit(nopython=False)
+        def gas_ind(sat_pos, sat_vel, rad_lim, vel_lim):
+            pos_mask = ut.coordinate.get_distances(sat_pos, gas_particle_pos, 
+                total_distance=True) < rad_lim
+            vel_mask = ut.coordinate.get_distances(sat_vel, gas_particle_vel, 
+                total_distance=True) < vel_lim
+            return np.where(pos_mask & vel_mask)[0]
+        """
+        with ProgressBar(len(sat_position)) as bar:
+            for i,sat_posi in enumerate(sat_position):
+                #sat_gas_indices.append(gas_ind(sat_posi, sat_velocity[i], radius_limit[i], velocity_limit[i]))
+                pos_mask = ut.coordinate.get_distances(sat_posi, gas_particle_pos, 
+                    total_distance=True) < radius_limit[i]
+                vel_mask = ut.coordinate.get_distances(sat_velocity[i], gas_particle_vel, 
+                    total_distance=True) < velocity_limit[i]
+                sat_gas_indices.append(np.where(pos_mask & vel_mask)[0])
+                bar.update()
 
         return sat_gas_indices
 

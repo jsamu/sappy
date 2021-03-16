@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from numba import jit
 import math
 import utilities as ut
@@ -1640,3 +1641,22 @@ def select_out_of_disk(
     disk_mask = np.abs(np.degrees(np.arctan(tangent_of_open_angle))) > disk_mask_angle
 
     return disk_mask
+
+def convert_snapshot_to_time(
+    snapshot, time_kind='redshift', 
+    snap_file_path='/Users/jsamuel/Desktop/Latte/tables/snap_times_all.txt'):
+    
+    time_table = pd.read_csv('/Users/jsamuel/Desktop/Latte/tables/snapshot_times.txt', sep=' ')
+    
+    if type(snapshot) == int:
+        snapshot_mask = time_table['snapshot'] == snapshot
+        converted_time = time_table[time_kind][snapshot_mask].values[0]
+    elif (type(snapshot) == list )|(type(snapshot) == np.ndarray):
+        converted_time = []
+        for snap in snapshot:
+            snapshot_mask = time_table['snapshot'] == snap
+            converted_time.append(time_table[time_kind][snapshot_mask].values[0])
+    else:
+        raise ValueError('Data type of input snapshot not recognized. Must be int or list/array.')
+        
+    return converted_time
