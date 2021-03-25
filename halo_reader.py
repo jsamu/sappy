@@ -163,7 +163,7 @@ class SatelliteTree(SatParam):
             self.r_range = [radius_limits[0], radius_limits[1]]
             self.r_bins = ut.binning.BinClass(self.r_range, width=self.r_width).maxs
 
-        self.hal_label = sio.hal_label_names(self)
+        #self.hal_label = sio.hal_label_names(self)
 
         # load trees. if dmo, the corrected circular velocity, etc. is added to 
         # tree.
@@ -314,7 +314,7 @@ class SatelliteHalo(SatParam):
             self.host_disk_axes = pickle.load(f)
             f.close()            
 
-        self.hal_label = sio.hal_label_names(self)
+        #self.hal_label = sio.hal_label_names(self)
         self.mask_names = mask_names
 
         # load halo catalogs

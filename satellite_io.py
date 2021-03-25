@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from numba import jit
+from matplotlib import pyplot as plt
 import math
 import utilities as ut
 import halo_analysis as halo
@@ -1625,7 +1626,7 @@ def group_assoc(hal, hal_mask, host_str='host.'):
     initial_ids = np.where(hal_mask)[0]
     tracked_ids = halo_track(hal, initial_ids, snapshot_list=all_snapshots)
     tracked_central = np.array([hal['central.index'][ids.astype(int)] for ids in tracked_ids])
-    tracked_central_local = np.array([hal['central.local.index'][ids.astype(int)] for ids in tracked_ids])
+    #tracked_central_local = np.array([hal['central.local.index'][ids.astype(int)] for ids in tracked_ids])
 
     return tracked_central
 
@@ -1660,3 +1661,10 @@ def convert_snapshot_to_time(
         raise ValueError('Data type of input snapshot not recognized. Must be int or list/array.')
         
     return converted_time
+
+def color_cycle(cycle_length=14, cmap_name='plasma', low=0, high=1):
+    #cm_subsection = np.linspace(low, high, cycle_length)
+    cmap=plt.get_cmap(cmap_name)
+    colors = cmap(np.linspace(low, high, cycle_length))#[cmap(x) for x in cm_subsection]
+
+    return colors
