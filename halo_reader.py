@@ -322,14 +322,14 @@ class SatelliteHalo(SatParam):
         if host_number > 1:
             # Local Group simulations
             if dmo:
-                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name, baryon_frac=True, file_kind=file_kind)
+                self.hal_catalog = sio.load_hals(directory_list, self.snapshot, self.hal_name.keys(), baryon_frac=True, file_kind=file_kind)
                 #if baryon_sat is not None:
                 #    self.num_sats = spa.total_sats(self, baryon_sat, mask_key='star.mass', radius=self.r_range[1])
                 #    self.med_v_circ = kin.med_velcircmax_z0(baryon_sat, mask_key='star.mass')
                 self.catalog_mask = sio.mask_lg_dmo_cat(self)
             else:
                 self.hal_catalog = sio.load_hals(directory_list, self.snapshot, 
-                    self.hal_name, host_number=host_number, assign_species=assign_species, file_kind=file_kind)
+                    self.hal_name.keys(), host_number=host_number, assign_species=assign_species, file_kind=file_kind)
                 self.catalog_mask = sio.mask_lg_baryon_cat(self)
 
         else:
