@@ -1645,9 +1645,9 @@ def select_out_of_disk(
 
 def convert_snapshot_to_time(
     snapshot, time_kind='redshift', 
-    snap_file_path='/Users/jsamuel/Desktop/Latte/tables/snap_times_all.txt'):
+    snap_file_path='/Users/jsamuel/Desktop/Latte/tables/'):
     
-    time_table = pd.read_csv('/Users/jsamuel/Desktop/Latte/tables/snapshot_times.txt', sep=' ')
+    time_table = pd.read_csv(snap_file_path+'snapshot_times.txt', sep=' ')
     
     if type(snapshot) == int:
         snapshot_mask = time_table['snapshot'] == snapshot
