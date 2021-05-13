@@ -1589,21 +1589,44 @@ def iso_probability(true_property, iso_property):
 
     return prob_over_time
 
-def halo_track(tree, initial_tree_ids, redshift_list=None, snapshot_list=None):
+def halo_track(
+    tree, initial_tree_indices, redshift_list=None, snapshot_list=None):
     """
     Track halos in a merger tree at specific times given by redshift or
-    given by snapshot.
+    given by snapshot. Must supply either a redshift list or a snapshot list
+    that ends with the redshift/snapshot at which initial_tree_indices are
+    specified.
+ 
+    Parameters
+    ----------
+    tree : dictionary
+        Merger tree loaded in using halo_analysis package.
+    initial_tree_indices : list or array
+        1D array of tree indices of subhalos at any individual snapshot.
+    redshift_list : list or array
+        List of floats specifying which redshifts to track subhalos at and save.
+    snapshot_list : list or array
+        List of ints specifying which snapshots to track subhalos at and save.
+
+    Returns
+    -------
+    hal_tracker : array
+        Array of size (601, # of tracked subhalos) with the tracked tree indices
+        of each subhalo at each snapshot. The index along the first dimension of
+        this array corresponds directly to the snapshot number. Untracked snapshots
+        are left with default values of -1, and when a subhalo is lost (going
+        back in time) its last known tree index is repeated through snapshot 0.
     """
     if redshift_list:
         snapshot_ids = tree.Snapshot.get_snapshot_indices('redshift', redshift_list)
     else:
         snapshot_ids = snapshot_list
 
-    hal_tracker = np.full((601, len(initial_tree_ids)), -1, dtype='int32')
+    hal_tracker = np.full((601, len(initial_tree_indices)), -1, dtype='int32')
     i = np.max(snapshot_ids)
-    hal_tracker[i] = initial_tree_ids
+    hal_tracker[i] = initial_tree_indices
 
-    tracking_ids = initial_tree_ids
+    tracking_ids = initial_tree_indices
     while i >= np.min(snapshot_ids):
         i -= 1
         progenitor_indices = tree['progenitor.main.index'][tracking_ids]
@@ -1645,17 +1668,18 @@ def select_out_of_disk(
 
 def convert_snapshot_to_time(
     snapshot, time_kind='redshift', 
-    snap_file_path='/Users/jsamuel/Desktop/Latte/tables/'):
+    snap_file_path='/Users/jsamuel/Desktop/Latte/tables/',
+    pre_convert_type='snapshot'):
     
     time_table = pd.read_csv(snap_file_path+'snapshot_times.txt', sep=' ')
     
     if type(snapshot) == int:
-        snapshot_mask = time_table['snapshot'] == snapshot
+        snapshot_mask = time_table[pre_convert_type] == snapshot
         converted_time = time_table[time_kind][snapshot_mask].values[0]
     elif (type(snapshot) == list )|(type(snapshot) == np.ndarray):
         converted_time = []
         for snap in snapshot:
-            snapshot_mask = time_table['snapshot'] == snap
+            snapshot_mask = time_table[pre_convert_type] == snap
             converted_time.append(time_table[time_kind][snapshot_mask].values[0])
     else:
         raise ValueError('Data type of input snapshot not recognized. Must be int or list/array.')

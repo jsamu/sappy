@@ -1658,7 +1658,7 @@ def plot_host_disk_incompleteness(
     #ax.set_xticklabels(['0', '', '30', '', '60', '', '90'])
     ax.set_xticks(x, minor=True)
     plt.xlim((0,30))
-    plt.xlabel(r'Host disk obscured region [$\pm b \degree$]', fontsize=20)
+    plt.xlabel(r'Host disc obscured region [$\pm b_{c} \degree$]', fontsize=20)
     plt.ylabel('Relative incidence of MW planes', fontsize=20)
     plt.ylim(ylim)
     plt.yscale('log')
