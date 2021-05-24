@@ -122,6 +122,7 @@ class GalaxyGas():
         """
         if galaxy_table is not None:
             # get subhalo/galaxy properties from table
+            # distances and velocities are host-centric
             sat_position = np.dstack((np.array(galaxy_table['r.x']), 
                 np.array(galaxy_table['r.y']), np.array(galaxy_table['r.z'])))[0]
             sat_velocity = np.dstack((np.array(galaxy_table['v.x']), 
@@ -130,13 +131,17 @@ class GalaxyGas():
             sat_vel_max = np.array(galaxy_table['vel.circ.max'])
             sat_vel_std = np.array(galaxy_table['vel.std'])
 
+            # store all gas particle distances and velocities in new variables
+            gas_particle_pos = gas_particle_data.prop('host.distance')
+            gas_particle_vel = gas_particle_data.prop('host.velocity')
+
         # define distance and velocity cutoffs
         radius_limit = radius_factor*sat_rad
         velocity_limit = vel_factor*np.max((sat_vel_std, sat_vel_max), axis=0)
 
         # store all gas particle distances and velocities in new variables
-        gas_particle_pos = gas_particle_data.prop('host.distance')
-        gas_particle_vel = gas_particle_data.prop('host.velocity')
+        gas_particle_pos = gas_particle_data['position']
+        gas_particle_vel = gas_particle_data['velocity']
 
         def find_indices(
             sat_position_, gas_positions_, radius_limit_, sat_velocity_, 
