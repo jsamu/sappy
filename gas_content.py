@@ -172,11 +172,16 @@ class GalaxyGas():
                     bar.update()
         else:
             for i,sat_pos_i in enumerate(sat_position):
-                ginds = find_indices(
-                    sat_pos_i, gas_particle_pos, radius_limit[i], 
-                    sat_velocity[i], gas_particle_vel, velocity_limit[i]
-                )
-                sat_gas_indices.append(ginds)
+                #ginds = find_indices(
+                #    sat_pos_i, gas_particle_pos, radius_limit[i], 
+                #    sat_velocity[i], gas_particle_vel, velocity_limit[i]
+                #)
+                #sat_gas_indices.append(ginds)
+                pos_mask = ut.coordinate.get_distances(sat_pos_i, gas_particle_pos, 
+                    total_distance=True) < radius_limit[i]
+                vel_mask = ut.coordinate.get_distances(sat_velocity[i], gas_particle_vel, 
+                    total_distance=True) < velocity_limit[i]
+                sat_gas_indices.append(np.where(pos_mask & vel_mask)[0])
 
         return np.array(sat_gas_indices)
 
