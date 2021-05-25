@@ -84,7 +84,8 @@ class GalaxyGas():
         }
 
         gas_by_temp = self.gas_mass_by_temp(gas_particle_data)
-        gas_props = {**gas_props, **gas_by_temp}
+        avg_gas_props = self.get_avg_gas_props(gas_particle_data)
+        gas_props = {**gas_props, **gas_by_temp, **avg_gas_props}
         self.gas_props = gas_props
 
         return gas_props
@@ -231,21 +232,17 @@ class GalaxyGas():
             sat_nh_gas_masses.append(np.sum(gas_particle_data.prop('mass.hydrogen.neutral')[sat]))
         return np.array(sat_nh_gas_masses)
 
-    def avg_gas_temp(self, gas_particle_data):
+    def get_avg_gas_props(self, gas_particle_data):
         """
-        Get the average temperature of all gas associated with a subhalo(s).
+        Get the average temp & density of all gas associated with a subhalo(s).
         """
         sat_gas_avg_temp = []
-        for sat in self.sat_gas_ind:
-            sat_gas_avg_temp.append(np.nanmean(gas_particle_data['temperature'][sat]))
-        return np.array(sat_gas_avg_temp)
-
-    def avg_gas_density(self, gas_particle_data):
-        """
-        Get the average density of all gas associated with a subhalo(s).
-        """
         sat_gas_avg_density = []
         for sat in self.sat_gas_ind:
+            sat_gas_avg_temp.append(np.nanmean(gas_particle_data['temperature'][sat]))
             sat_gas_avg_density.append(np.nanmean(gas_particle_data['density'][sat]))
-        return np.array(sat_gas_avg_density)
+        return {
+            'avg.gas.density':np.array(sat_gas_avg_density),
+            'avg.gas.temperature':np.array(sat_gas_avg_temp)
+        }
     
