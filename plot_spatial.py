@@ -87,16 +87,16 @@ def radial_distribution(
     
     plt.legend(loc=2, fontsize=18)
     plt.xlabel('Distance from host [kpc]', fontsize=22)
-    plt.ylabel('N$_{sat}$(<D)', fontsize=22)
+    plt.ylabel('N$_{sat}$(<d)', fontsize=22)
     plt.xlim(0,300)
     #plt.ylim(0,14)
     plt.xticks(fontsize=18)
     plt.yticks(fontsize=18)
     plt.show()
     #fig.savefig('/home1/05385/tg846849/figures/radial_distribution/res7100/m12f_{}.pdf'.format(redshift_index))
-    fig.savefig('/home1/05385/tg846849/figures/radial_distribution/res7100/m12f_test.pdf')
+    #fig.savefig('/home1/05385/tg846849/figures/radial_distribution/res7100/m12f_test.pdf')
 
-    #return fig
+    return fig
 
 def radial_distribution_coadd(
     sat, mask_key, MW_data=False, M31_data=False, norm=False, figdir=None,

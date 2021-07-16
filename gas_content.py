@@ -135,14 +135,15 @@ class GalaxyGas():
             # store all gas particle distances and velocities in new variables
             gas_particle_pos = gas_particle_data.prop('host.distance')
             gas_particle_vel = gas_particle_data.prop('host.velocity')
+        else:
+            # store all gas particle distances and velocities in new variables
+            gas_particle_pos = gas_particle_data['position']
+            gas_particle_vel = gas_particle_data['velocity']
 
         # define distance and velocity cutoffs
         radius_limit = radius_factor*sat_rad
         velocity_limit = vel_factor*np.max((sat_vel_std, sat_vel_max), axis=0)
 
-        # store all gas particle distances and velocities in new variables
-        gas_particle_pos = gas_particle_data['position']
-        gas_particle_vel = gas_particle_data['velocity']
 
         def find_indices(
             sat_position_, gas_positions_, radius_limit_, sat_velocity_, 
