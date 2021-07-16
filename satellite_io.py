@@ -701,10 +701,10 @@ def mask_tree(sat):
     """
     tree_mask_dict = {}
     for host_key in sat.tree.keys():
-        for redshift in sat.redshift:
+        for snap in sat.snapshot:
             # look at a single snapshot/redshift
-            redshift_snap_id = sat.tree[host_key].Snapshot.get_snapshot_indices('redshift', redshift)
-            redshift_mask = sat.tree[host_key]['snapshot'] == redshift_snap_id
+            #redshift_snap_id = sat.tree[host_key].Snapshot.get_snapshot_indices('redshift', redshift)
+            redshift_mask = sat.tree[host_key]['snapshot'] == snap
 
             # systematically exclude the host/main halo
             host_mask = ~(sat.tree[host_key]['host.index'] == np.arange(len(sat.tree[host_key]['host.index'])))
@@ -838,10 +838,10 @@ def mask_tree_lg(sat):
         host_mask_dict = {}
         host_list = ['host', 'host2']
         for host_name, host_str in zip(sat.hal_name[pair_name], host_list):
-            for redshift in sat.redshift:
+            for snap in sat.snapshot:
                 # look at a single snapshot/redshift
-                redshift_snap_id = sat.tree[pair_name].Snapshot.get_snapshot_indices('redshift', redshift)
-                redshift_mask = sat.tree[pair_name]['snapshot'] == redshift_snap_id
+                #redshift_snap_id = sat.tree[pair_name].Snapshot.get_snapshot_indices('redshift', redshift)
+                redshift_mask = sat.tree[pair_name]['snapshot'] == snap
 
                 # choose only satellites of a single host galaxy
                 host_ind = np.unique(sat.tree[pair_name][host_str+'.index'][redshift_mask])[0]
