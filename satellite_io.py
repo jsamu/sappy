@@ -1687,8 +1687,7 @@ def convert_snapshot_to_time(
     return converted_time
 
 def color_cycle(cycle_length=14, cmap_name='plasma', low=0, high=1):
-    #cm_subsection = np.linspace(low, high, cycle_length)
     cmap=plt.get_cmap(cmap_name)
-    colors = cmap(np.linspace(low, high, cycle_length))#[cmap(x) for x in cm_subsection]
+    colors = cmap(np.linspace(low, high, cycle_length))
 
     return colors
