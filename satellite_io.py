@@ -813,6 +813,7 @@ def mask_tree(sat):
                     combined_mask = combined_mask1 | combined_mask2
 
                 elif star_key == 'lmc.mass.peak':
+                    # select those halos that were previously hosted by an LMC analogue
                     base_mask = (redshift_mask & host_mask & 
                                  lowres_mask & distance_mask & phantom_mask & 
                                  bound_mask)
@@ -821,11 +822,8 @@ def mask_tree(sat):
                     m_peak_mask = m_peak_arr > sat.mass_peak
                     m_peak_ind = base_ind[m_peak_mask]
 
-                    # select those halos that were previously hosted by an LMC analogue
                     # code from Megan Barry 9/2021
                     progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',m_peak_ind)
-                    masks = subhalo_indices >= 0
-                    subhalo_indices = subhalo_indices[masks]
                     progenitor_indices[progenitor_indices < 0] = -1
                     central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
                     LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
@@ -842,6 +840,7 @@ def mask_tree(sat):
                     combined_mask[lmc_hosted_ind] = True
 
                 elif star_key == 'no.lmc.mass.peak':
+                    # select those halos that were NOT previously hosted by an LMC analogue
                     base_mask = (redshift_mask & host_mask & 
                                  lowres_mask & distance_mask & phantom_mask & 
                                  bound_mask)
@@ -850,11 +849,8 @@ def mask_tree(sat):
                     m_peak_mask = m_peak_arr > sat.mass_peak
                     m_peak_ind = base_ind[m_peak_mask]
 
-                    # select those halos that were previously hosted by an LMC analogue
                     # code from Megan Barry 9/2021
                     progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',m_peak_ind)
-                    masks = subhalo_indices >= 0
-                    subhalo_indices = subhalo_indices[masks]
                     progenitor_indices[progenitor_indices < 0] = -1
                     central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
                     LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
