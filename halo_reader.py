@@ -42,6 +42,7 @@ class SatParam(object):
     v_peak = 35
     mass_peak = 8e8
     m_bound = 1e7
+    lmc_index = None
 
     # completeness parameters
     disk_mask_angle = 12.0
@@ -65,7 +66,7 @@ class SatelliteTree(SatParam):
         observation_dir=None, vel_circ_max_lim=None, mass_bound=None,
         v_peak=None, mass_peak=None, assign_species=True, isotropic=False,
         number_sats=None, time_list=None, time_info_file_path=None,
-        redshift_limits=None):
+        redshift_limits=None, lmc_index=None):
         """
         Parameters
         ----------
@@ -162,6 +163,9 @@ class SatelliteTree(SatParam):
         elif radius_limits:
             self.r_range = [radius_limits[0], radius_limits[1]]
             self.r_bins = ut.binning.BinClass(self.r_range, width=self.r_width).maxs
+
+        if lmc_index:
+            self.lmc_index = lmc_index
 
         #self.hal_label = sio.hal_label_names(self)
 
