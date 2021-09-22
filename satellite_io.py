@@ -313,58 +313,6 @@ def mask_hal_baryonic(hal, sat, mask_keys, hal_name=None, redshift_index=None):
             combined_mask = np.zeros(len(hal['vel.circ.peak']), dtype=bool)
             combined_mask[top_n_ind] = True
 
-        elif mask_key == 'lmc.mass.peak':
-            base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
-            base_ind = np.where(base_mask)[0]
-            m_peak_mask = hal['mass.peak'][base_ind] > sat.mass_peak
-            m_peak_ind = base_ind[m_peak_mask]
-
-            # select those halos that were previously hosted by an LMC analogue
-            # code from Megan Barry 9/2021
-            progenitor_indices = hal.prop('progenitor.main.indices',m_peak_ind)
-            masks = subhalo_indices >= 0
-            subhalo_indices = subhalo_indices[masks]
-            progenitor_indices[progenitor_indices < 0] = -1
-            central_indices = hal['central.index'][progenitor_indices]
-            LMC_indices = hal.prop('progenitor.main.indices', sat.lmc_index)
-            LMC_tracker = np.full_like(progenitor_indices,0)
-            dummy_tracker = np.full_like(progenitor_indices,1)
-            for LMC_index in LMC_indices:
-                #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
-                LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
-            result = np.sum(LMC_tracker,axis=1)
-            LMC_mask = result > 0
-
-            lmc_hosted_ind = m_peak_ind[LMC_mask]
-            combined_mask = np.zeros(len(hal['mass']), dtype=bool)
-            combined_mask[lmc_hosted_ind] = True
-
-        elif mask_key == 'no.lmc.mass.peak':
-            base_mask = host_mask & mask_lowres_fraction & mask_distance & bound_mask
-            base_ind = np.where(base_mask)[0]
-            m_peak_mask = hal['mass.peak'][base_ind] > sat.mass_peak
-            m_peak_ind = base_ind[m_peak_mask]
-
-            # select those halos that were previously hosted by an LMC analogue
-            # code from Megan Barry 9/2021
-            progenitor_indices = hal.prop('progenitor.main.indices',m_peak_ind)
-            masks = subhalo_indices >= 0
-            subhalo_indices = subhalo_indices[masks]
-            progenitor_indices[progenitor_indices < 0] = -1
-            central_indices = hal['central.index'][progenitor_indices]
-            LMC_indices = hal.prop('progenitor.main.indices', sat.lmc_index)
-            LMC_tracker = np.full_like(progenitor_indices,0)
-            dummy_tracker = np.full_like(progenitor_indices,1)
-            for LMC_index in LMC_indices:
-                #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
-                LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
-            result = np.sum(LMC_tracker,axis=1)
-            LMC_mask = result > 0
-
-            lmc_hosted_ind = m_peak_ind[LMC_mask]
-            combined_mask = np.ones(len(hal['mass']), dtype=bool)
-            combined_mask[lmc_hosted_ind] = False
-
         else:
             raise ValueError('Halo catalog mask key ({}) not recognized'.format(mask_key))
         
@@ -863,6 +811,64 @@ def mask_tree(sat):
                                     & d_2_mask & phantom_mask & bound_mask)
 
                     combined_mask = combined_mask1 | combined_mask2
+
+                elif star_key == 'lmc.mass.peak':
+                    base_mask = (redshift_mask & host_mask & 
+                                 lowres_mask & distance_mask & phantom_mask & 
+                                 bound_mask)
+                    base_ind = np.where(base_mask)[0]
+                    m_peak_arr = kin.v_peak(sat.tree[host_key], hal_mask=base_mask, hal_property='mass')
+                    m_peak_mask = m_peak_arr > sat.mass_peak
+                    m_peak_ind = base_ind[m_peak_mask]
+
+                    # select those halos that were previously hosted by an LMC analogue
+                    # code from Megan Barry 9/2021
+                    progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',m_peak_ind)
+                    masks = subhalo_indices >= 0
+                    subhalo_indices = subhalo_indices[masks]
+                    progenitor_indices[progenitor_indices < 0] = -1
+                    central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
+                    LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
+                    LMC_tracker = np.full_like(progenitor_indices,0)
+                    dummy_tracker = np.full_like(progenitor_indices,1)
+                    for LMC_index in LMC_indices:
+                        #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
+                        LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
+                    result = np.sum(LMC_tracker,axis=1)
+                    LMC_mask = result > 0
+
+                    lmc_hosted_ind = m_peak_ind[LMC_mask]
+                    combined_mask = np.zeros(len(sat.tree[host_key]['mass']), dtype=bool)
+                    combined_mask[lmc_hosted_ind] = True
+
+                elif star_key == 'no.lmc.mass.peak':
+                    base_mask = (redshift_mask & host_mask & 
+                                 lowres_mask & distance_mask & phantom_mask & 
+                                 bound_mask)
+                    base_ind = np.where(base_mask)[0]
+                    m_peak_arr = kin.v_peak(sat.tree[host_key], hal_mask=base_mask, hal_property='mass')
+                    m_peak_mask = m_peak_arr > sat.mass_peak
+                    m_peak_ind = base_ind[m_peak_mask]
+
+                    # select those halos that were previously hosted by an LMC analogue
+                    # code from Megan Barry 9/2021
+                    progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',m_peak_ind)
+                    masks = subhalo_indices >= 0
+                    subhalo_indices = subhalo_indices[masks]
+                    progenitor_indices[progenitor_indices < 0] = -1
+                    central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
+                    LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
+                    LMC_tracker = np.full_like(progenitor_indices,0)
+                    dummy_tracker = np.full_like(progenitor_indices,1)
+                    for LMC_index in LMC_indices:
+                        #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
+                        LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
+                    result = np.sum(LMC_tracker,axis=1)
+                    LMC_mask = result > 0
+
+                    lmc_hosted_ind = m_peak_ind[LMC_mask]
+                    combined_mask = np.ones(len(sat.tree[host_key]['mass']), dtype=bool)
+                    combined_mask[lmc_hosted_ind] = False
 
                 else:
                     raise ValueError('Tree mask key ({}) not recognized'.format(star_key))
