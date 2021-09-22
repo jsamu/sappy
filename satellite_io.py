@@ -88,6 +88,9 @@ def load_trees(
     """
     if assign_species is True:
         species_ = ['star']
+    else:
+        species_ = None
+        snapshot_ind = None
     tree_dict = {}
     for directory, name in zip(sim_directories, sim_names):
         tree = halo.io.IO.read_tree(simulation_directory=directory,
