@@ -862,9 +862,9 @@ def mask_tree(sat):
                     result = np.sum(LMC_tracker,axis=1)
                     LMC_mask = result > 0
 
-                    lmc_hosted_ind = m_peak_ind[LMC_mask]
-                    combined_mask = np.ones(len(sat.tree[host_key]['mass']), dtype=bool)
-                    combined_mask[lmc_hosted_ind] = False
+                    lmc_hosted_ind = m_peak_ind[~LMC_mask]
+                    combined_mask = np.zeros(len(sat.tree[host_key]['mass']), dtype=bool)
+                    combined_mask[lmc_hosted_ind] = True
 
                 else:
                     raise ValueError('Tree mask key ({}) not recognized'.format(star_key))
