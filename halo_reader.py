@@ -34,7 +34,7 @@ class SatParam(object):
     # other general parameters
     n_iter = 10000
     star_mass = [1e5, 1e10]
-    star_number = 10.0
+    star_number = 6
     star_density = 1e3
     low_res = 0.02
     vel_circ_max = 10

@@ -752,11 +752,56 @@ def mask_tree(sat):
 
                 elif star_key == 'star.number':
                     # for star particle data make a cut on half stellar density
-                    star_density_mask = sat.tree[host_key].prop('star.density.50') >= sat.star_density
+                    #star_density_mask = sat.tree[host_key].prop('star.density.50') >= sat.star_density
                     star_number_mask = sat.tree[host_key]['star.number'] >= sat.star_number
-                    combined_mask = (redshift_mask & host_mask & star_number_mask & 
-                                    star_density_mask & lowres_mask & distance_mask
-                                    & phantom_mask & bound_mask)
+                    combined_mask = (redshift_mask & host_mask & star_number_mask &#star_density_mask &  
+                                    lowres_mask & distance_mask& phantom_mask & bound_mask)
+
+                elif star_key == 'lmc.star.number':
+                    # for star particle data make a cut on half stellar density
+                    star_number_mask = sat.tree[host_key]['star.number'] >= sat.star_number
+                    base_mask = (redshift_mask & host_mask & star_number_mask & 
+                                lowres_mask & distance_mask & phantom_mask & bound_mask)
+                    base_ind = np.where(base_mask)[0]
+                    # code from Megan Barry 9/2021
+                    progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',base_ind)
+                    progenitor_indices[progenitor_indices < 0] = -1
+                    central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
+                    LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
+                    LMC_tracker = np.full_like(progenitor_indices,0)
+                    dummy_tracker = np.full_like(progenitor_indices,1)
+                    for LMC_index in LMC_indices:
+                        #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
+                        LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
+                    result = np.sum(LMC_tracker,axis=1)
+                    LMC_mask = result > 0
+
+                    lmc_hosted_ind = base_ind[LMC_mask]
+                    combined_mask = np.zeros(len(sat.tree[host_key]['mass']), dtype=bool)
+                    combined_mask[lmc_hosted_ind] = True
+
+                elif star_key == 'no.lmc.star.number':
+                    # for star particle data make a cut on half stellar density
+                    star_number_mask = sat.tree[host_key]['star.number'] >= sat.star_number
+                    base_mask = (redshift_mask & host_mask & star_number_mask & 
+                                lowres_mask & distance_mask & phantom_mask & bound_mask)
+                    base_ind = np.where(base_mask)[0]
+                    # code from Megan Barry 9/2021
+                    progenitor_indices = sat.tree[host_key].prop('progenitor.main.indices',base_ind)
+                    progenitor_indices[progenitor_indices < 0] = -1
+                    central_indices = sat.tree[host_key]['central.index'][progenitor_indices]
+                    LMC_indices = sat.tree[host_key].prop('progenitor.main.indices', sat.lmc_index)
+                    LMC_tracker = np.full_like(progenitor_indices,0)
+                    dummy_tracker = np.full_like(progenitor_indices,1)
+                    for LMC_index in LMC_indices:
+                        #returns a 1 if the subhalo in central_indices was ever a satellite of an LMC, 0 if not
+                        LMC_tracker = np.where(central_indices == LMC_index,dummy_tracker,LMC_tracker)
+                    result = np.sum(LMC_tracker,axis=1)
+                    LMC_mask = result > 0
+
+                    lmc_hosted_ind = base_ind[~LMC_mask]
+                    combined_mask = np.zeros(len(sat.tree[host_key]['mass']), dtype=bool)
+                    combined_mask[lmc_hosted_ind] = True
 
                 elif star_key == 'vel.circ.max':
                     v_circ_mask = sat.tree[host_key]['vel.circ.max'] >= sat.vel_circ_max
