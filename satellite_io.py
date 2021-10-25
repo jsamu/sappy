@@ -1375,22 +1375,26 @@ def loop_hal(sat, mask_key, exec_func, **kwargs):
         stores the output of exec_func for each simulation and snapshot in sat
     '''
     loop_dict = defaultdict(list)
+    if type(sat.snapshot) == int:
+        snap_list = [sat.snapshot]
+    else:
+        snap_list = sat.snapshot
     if sat.sat_type == 'tree':
         for host_name in sat.tree.keys():
-            for redshift_index in range(len(sat.snapshot)):
+            for redshift_index in range(len(snap_list)):
                 tree = sat.tree[host_name]
                 tree_mask = sat.tree_mask[host_name][redshift_index][mask_key]
                 loop_dict[host_name].append(exec_func(hal=tree, hal_mask=tree_mask, **kwargs))
     elif sat.sat_type == 'tree.lg':
         for pair_name in sat.tree.keys():
             for host_name, host_str in zip(sat.hal_name[pair_name], ['host.', 'host2.']):
-                for redshift_index in range(len(sat.snapshot)):
+                for redshift_index in range(len(snap_list)):
                     tree = sat.tree[pair_name]
                     tree_mask = sat.tree_mask[pair_name][host_name][redshift_index][mask_key]
                     loop_dict[host_name].append(exec_func(hal=tree, hal_mask=tree_mask, host_str=host_str, **kwargs))
     elif sat.sat_type == 'hal':
         for hal_name in sat.hal_name:
-            for redshift_index in range(len(sat.snapshot)):
+            for redshift_index in range(len(snap_list)):
                 #the line below implicitly loops over the snapshots/redshifts that have been loaded
                 #for hal, hal_mask in zip(sat.hal_catalog[hal_name], sat.catalog_mask[mask_key][hal_name]):
                 hal = sat.hal_catalog[hal_name][redshift_index]
@@ -1399,7 +1403,7 @@ def loop_hal(sat, mask_key, exec_func, **kwargs):
     elif sat.sat_type == 'hal.lg':
         for pair_name in sat.hal_catalog.keys():
             for host_name, host_str in zip(sat.hal_name[pair_name], ['host.', 'host2.']):
-                for redshift_index in range(len(sat.snapshot)):
+                for redshift_index in range(len(snap_list)):
                     cat = sat.hal_catalog[pair_name][redshift_index]
                     cat_mask = sat.catalog_mask[pair_name][host_name][redshift_index][mask_key]
                     loop_dict[host_name].append(exec_func(hal=cat, hal_mask=cat_mask, host_str=host_str, **kwargs))
