@@ -67,7 +67,8 @@ class SatelliteTree(SatParam):
         observation_dir=None, vel_circ_max_lim=None, mass_bound=None,
         v_peak=None, mass_peak=None, assign_species=True, isotropic=False,
         number_sats=None, time_list=None, time_info_file_path=None,
-        redshift_limits=None, lmc_index=None, bound_fraction=None):
+        redshift_limits=None, lmc_index=None, bound_fraction=None,
+        star_density=None):
         """
         Parameters
         ----------
@@ -171,6 +172,9 @@ class SatelliteTree(SatParam):
         if bound_fraction:
             self.bound_frac = bound_fraction
 
+        if star_density:
+            self.star_density = star_density
+
         #self.hal_label = sio.hal_label_names(self)
 
         # load trees. if dmo, the corrected circular velocity, etc. is added to 
@@ -224,7 +228,8 @@ class SatelliteHalo(SatParam):
         vel_circ_max_lim=None, v_peak=None, mass_peak=None, mass_bound=None,
         assign_species=True, radius_limits=None, radius_bin_width=None, 
         number_sats=None, time_info_file_path=None, redshift_limits=None,
-        file_kind='hdf5', host_disk_axes_file_path=None, bound_fraction=None):
+        file_kind='hdf5', host_disk_axes_file_path=None, bound_fraction=None,
+        star_density=None):
         """
         Parameters
         ----------
@@ -324,6 +329,9 @@ class SatelliteHalo(SatParam):
 
         if bound_fraction:
             self.bound_frac = bound_fraction
+
+        if star_density:
+            self.star_density = star_density
 
         #self.hal_label = sio.hal_label_names(self)
         self.mask_names = mask_names
