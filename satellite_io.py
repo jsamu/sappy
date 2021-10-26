@@ -194,8 +194,8 @@ def mask_hal_baryonic(hal, sat, mask_keys, hal_name=None, redshift_index=None):
 
     mask_lowres_fraction = hal.prop('lowres.mass.frac') <= sat.low_res
 
-    # exclude halos with bound fractions less than 0.4
-    bound_mask = hal.prop('mass.bound/mass') > 0.4
+    # exclude halos with bound fractions less than 0.4 (default)
+    bound_mask = hal.prop('mass.bound/mass') > sat.bound_frac
 
     mask_distance = ((hal.prop('host.distance.total') >= sat.r_range[0]) & 
                     (hal.prop('host.distance.total') <= sat.r_range[1]))

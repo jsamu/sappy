@@ -37,6 +37,7 @@ class SatParam(object):
     star_number = 6
     star_density = 1e3
     low_res = 0.02
+    bound_frac = 0.4
     vel_circ_max = 10
     abs_number = 11
     v_peak = 35
@@ -66,7 +67,7 @@ class SatelliteTree(SatParam):
         observation_dir=None, vel_circ_max_lim=None, mass_bound=None,
         v_peak=None, mass_peak=None, assign_species=True, isotropic=False,
         number_sats=None, time_list=None, time_info_file_path=None,
-        redshift_limits=None, lmc_index=None):
+        redshift_limits=None, lmc_index=None, bound_fraction=None):
         """
         Parameters
         ----------
@@ -167,6 +168,9 @@ class SatelliteTree(SatParam):
         if lmc_index:
             self.lmc_index = lmc_index
 
+        if bound_fraction:
+            self.bound_frac = bound_fraction
+
         #self.hal_label = sio.hal_label_names(self)
 
         # load trees. if dmo, the corrected circular velocity, etc. is added to 
@@ -220,7 +224,7 @@ class SatelliteHalo(SatParam):
         vel_circ_max_lim=None, v_peak=None, mass_peak=None, mass_bound=None,
         assign_species=True, radius_limits=None, radius_bin_width=None, 
         number_sats=None, time_info_file_path=None, redshift_limits=None,
-        file_kind='hdf5', host_disk_axes_file_path=None):
+        file_kind='hdf5', host_disk_axes_file_path=None, bound_fraction=None):
         """
         Parameters
         ----------
@@ -317,6 +321,9 @@ class SatelliteHalo(SatParam):
             f = open(host_disk_axes_file_path, 'rb')
             self.host_disk_axes = pickle.load(f)
             f.close()            
+
+        if bound_fraction:
+            self.bound_frac = bound_fraction
 
         #self.hal_label = sio.hal_label_names(self)
         self.mask_names = mask_names
