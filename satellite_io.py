@@ -961,14 +961,27 @@ def mask_tree_lg(sat):
                 # exclude halos with bound fractions less than 0.4
                 bound_mask = sat.tree[pair_name].prop('mass.bound/mass') > 0.4
 
+                # for star particle data make a cut on half stellar density
+                star_density_mask = sat.tree[pair_name].prop('star.density.50') >= sat.star_density
+
                 # select subhalos within a certain distance to be satellites
-                dist_3d = sat.tree[pair_name][host_str+'.distance']
-                total_distance = np.sqrt(dist_3d[:,0]**2 + dist_3d[:,1]**2 + dist_3d[:,2]**2)
+                #dist_3d = sat.tree[pair_name][host_str+'.distance']
+                #total_distance = np.sqrt(dist_3d[:,0]**2 + dist_3d[:,1]**2 + dist_3d[:,2]**2)
+                total_distance = sat.tree[pair_name][host_str+'.distance.total']
                 distance_mask = ((total_distance >= sat.r_range[0]) & 
                                 (total_distance <= sat.r_range[1]))
 
-                # for star particle data make a cut on half stellar density
-                star_density_mask = sat.tree[pair_name].prop('star.density.50') >= sat.star_density
+                # OR select nonsatellites/subhalos outside of a given distance (300 kpc) and within some larger distance
+                # this will return identical masks for both LG hosts in the simulation
+                # nonsats must be within the larger distance limit of at least 1 host, but may be further from the other
+                # also exclude both hosts
+                host_mask1 = ~(sat.tree[pair_name]['host.index'] == np.arange(len(sat.tree[pair_name]['host.index'])))
+                host_mask2 = ~(sat.tree[pair_name]['host2.index'] == np.arange(len(sat.tree[pair_name]['host2.index'])))
+                nonsat_mask1 = sat.tree[pair_name]['host.distance.total'] > 300
+                nonsat_mask2 = sat.tree[pair_name]['host2.distance.total'] > 300
+                outer_distance_mask = ((sat.tree[pair_name]['host.distance.total'] <= sat.r_range[1]) | 
+                    (sat.tree[pair_name]['host2.distance.total'] <= sat.r_range[1]))
+                nonsatellite_mask = nonsat_mask1 & nonsat_mask2 & outer_distance_mask & host_mask1 & host_mask2
 
                 redshift_mask_dict = {}
                 for star_key in sat.mask_names:
@@ -995,6 +1008,13 @@ def mask_tree_lg(sat):
                         combined_mask = (redshift_mask & host_mask & star_number_mask & 
                                         star_density_mask & lowres_mask & distance_mask
                                         & phantom_mask & host_system_mask & bound_mask)
+
+                    elif star_key == 'star.mass.nonsatellites':
+                        star_mass_low_mask = sat.tree[pair_name]['star.mass'] >= sat.star_mass[0]
+                        star_mass_high_mask = sat.tree[pair_name]['star.mass'] <= sat.star_mass[1]
+                        combined_mask = (redshift_mask & star_mass_low_mask & star_mass_high_mask & 
+                                        star_density_mask & lowres_mask & phantom_mask & bound_mask &
+                                        nonsatellite_mask)
 
                     elif star_key == 'vel.circ.max':
                         v_circ_mask = sat.tree[pair_name]['vel.circ.max'] >= sat.vel_circ_max
