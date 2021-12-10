@@ -706,9 +706,10 @@ def mask_tree(sat):
     for host_key in sat.tree.keys():
         # check for iterable, if not make iterable
         # (load hals needs a non-iterable, need to fix this inconsistency in a better way)
+        # also exits in loop hal
         snapshot_ = sat.snapshot
         if type(snapshot_) is int:
-            snapshot_ = list(snapshot_)
+            snapshot_ = [snapshot_]
         for snap in snapshot_:
             # look at a single snapshot/redshift
             #redshift_snap_id = sat.tree[host_key].Snapshot.get_snapshot_indices('redshift', redshift)
@@ -947,9 +948,10 @@ def mask_tree_lg(sat):
         for host_name, host_str in zip(sat.hal_name[pair_name], host_list):
             # check for iterable, if not make iterable
             # (load hals needs a non-iterable, need to fix this inconsistency in a better way)
+            # also exits in loop hal
             snapshot_ = sat.snapshot
             if type(snapshot_) is int:
-                snapshot_ = list(snapshot_)
+                snapshot_ = [snapshot_]
             for snap in snapshot_:
                 # look at a single snapshot/redshift
                 #redshift_snap_id = sat.tree[pair_name].Snapshot.get_snapshot_indices('redshift', redshift)
