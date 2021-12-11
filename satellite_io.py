@@ -979,7 +979,7 @@ def mask_tree_lg(sat):
                 # select subhalos within a certain distance to be satellites
                 #dist_3d = sat.tree[pair_name][host_str+'.distance']
                 #total_distance = np.sqrt(dist_3d[:,0]**2 + dist_3d[:,1]**2 + dist_3d[:,2]**2)
-                total_distance = sat.tree[pair_name][host_str+'.distance.total']
+                total_distance = sat.tree[pair_name].prop(host_str+'.distance.total')
                 distance_mask = ((total_distance >= sat.r_range[0]) & 
                                 (total_distance <= sat.r_range[1]))
 
@@ -989,10 +989,10 @@ def mask_tree_lg(sat):
                 # also exclude both hosts
                 host_mask1 = ~(sat.tree[pair_name]['host.index'] == np.arange(len(sat.tree[pair_name]['host.index'])))
                 host_mask2 = ~(sat.tree[pair_name]['host2.index'] == np.arange(len(sat.tree[pair_name]['host2.index'])))
-                nonsat_mask1 = sat.tree[pair_name]['host.distance.total'] > 300
-                nonsat_mask2 = sat.tree[pair_name]['host2.distance.total'] > 300
-                outer_distance_mask = ((sat.tree[pair_name]['host.distance.total'] <= sat.r_range[1]) | 
-                    (sat.tree[pair_name]['host2.distance.total'] <= sat.r_range[1]))
+                nonsat_mask1 = sat.tree[pair_name].prop('host.distance.total') > 300
+                nonsat_mask2 = sat.tree[pair_name].prop('host2.distance.total') > 300
+                outer_distance_mask = ((sat.tree[pair_name].prop('host.distance.total') <= sat.r_range[1]) | 
+                    (sat.tree[pair_name].prop('host2.distance.total') <= sat.r_range[1]))
                 nonsatellite_mask = nonsat_mask1 & nonsat_mask2 & outer_distance_mask & host_mask1 & host_mask2
 
                 redshift_mask_dict = {}
