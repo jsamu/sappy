@@ -61,7 +61,9 @@ def rotationMatrixToEulerAngles(R):
     return np.degrees(np.array([x, y, z]))
 
 
-def coadd_redshift(property_dict, dict_key=None, coadd_axis=0, all_sims=False):
+def coadd_redshift(
+    property_dict, dict_key=None, coadd_axis=0, all_sims=False,
+    percentiles=[16,84,2.5,97.5]):
     '''
     Get some basic satistics on a calculated property over time.
     '''
@@ -82,7 +84,7 @@ def coadd_redshift(property_dict, dict_key=None, coadd_axis=0, all_sims=False):
             
         hal_dict['mean'] = np.nanmean(redshift_prop, axis=coadd_axis)
         hal_dict['median'] = np.nanmedian(redshift_prop, axis=coadd_axis)
-        hal_dict['percentile'] = np.nanpercentile(redshift_prop, [16, 84, 2.5, 97.5], axis=coadd_axis)
+        hal_dict['percentile'] = np.nanpercentile(redshift_prop, percentiles, axis=coadd_axis)
 
     else:
         for hal_name in property_dict.keys():
