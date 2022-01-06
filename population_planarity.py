@@ -19,7 +19,7 @@ import satellite_analysis as sa
 def plot_coadd(
     x_values, host_medians, host_percentiles, own_figs=False, color=False):
     if color:
-        colors = color_cycle(len(host_medians))
+        colors = sa.satellite_io.color_cycle(len(host_medians))
     else:
         colors = ['k' for k in range(len(host_medians))]
     for i,(host_median,host_percentile) in enumerate(zip(host_medians, host_percentiles)):
@@ -54,7 +54,7 @@ def host_probability_stats(grouped_table, y_type, return_dict=False):
 
 def plot_value_vs_time(
     grouped_table, y_type, x_type='redshift', cmap_name='plasma'):
-    colors = color_cycle(len(grouped_table), cmap_name=cmap_name)
+    colors = sa.satellite_io.color_cycle(len(grouped_table), cmap_name=cmap_name)
     for i,(host_key,host_group) in enumerate(grouped_table):
         plt.figure(figsize=(7,6))
         plt.plot(host_group[x_type], host_group[y_type], color=colors[i], label=host_key)
@@ -64,7 +64,7 @@ def plot_value_vs_time(
 
 def plot_probability_vs_time(
     grouped_table, y_type, x_type='redshift', cmap_name='plasma'):
-    colors = color_cycle(len(grouped_table), cmap_name=cmap_name)
+    colors = sa.satellite_io.color_cycle(len(grouped_table), cmap_name=cmap_name)
 
     for i,(host_key,host_group) in enumerate(grouped_table):
         plt.figure(figsize=(7,6))

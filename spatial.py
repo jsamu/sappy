@@ -715,7 +715,7 @@ def rms_vs_r_frac(hal, hal_mask=None, host_str='host.', r_frac=0.68, radius_bins
 
     return {'rmsx':rms_major, 'rmsz':rms_minor, 'radii':rads}
 
-def rand_2d_proj(hal, hal_mask=None, host_str='host.', n_iter=1000):
+def rand_2d_proj(hal, hal_mask=None, host_str='host.', n_iter=1000, return_vels=False):
     dist3d_str = '{}{}'.format(host_str, 'distance')
     sat_coords = hal.prop(dist3d_str)[hal_mask]
     rot_vecs, rot_mats = ra.rand_rot_vec(n_iter)
@@ -726,7 +726,17 @@ def rand_2d_proj(hal, hal_mask=None, host_str='host.', n_iter=1000):
         proj_2d = np.sqrt(sat_coords_rot[:,1]**2 + sat_coords_rot[:,2]**2)
         proj_2d_dist.append(proj_2d)
 
-    return proj_2d_dist
+    if return_vels:
+        vel3d_str = '{}{}'.format(host_str, 'velocity')
+        sat_vels = hal.prop(vel3d_str)[hal_mask]
+        proj_vels = []
+        for n in range(n_iter):
+            sat_vels_rot = ut.basic.coordinate.get_coordinates_rotated(sat_vels, rotation_tensor=rot_vecs[n])
+            proj_v = np.sqrt(sat_vels_rot[:,1]**2 + sat_vels_rot[:,2]**2)
+            proj_vels.append(proj_v)
+        return proj_2d_dist, proj_vels
+    else:
+        return proj_2d_dist
 
 def cumul_2d_proj(hal, hal_mask=None, host_str='host.', n_iter=1000, rbins=None):
     proj_2d_dist = rand_2d_proj(hal, hal_mask, host_str, n_iter)
