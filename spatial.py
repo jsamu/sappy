@@ -729,12 +729,12 @@ def rand_2d_proj(hal, hal_mask=None, host_str='host.', n_iter=1000, return_vels=
     if return_vels:
         vel3d_str = '{}{}'.format(host_str, 'velocity')
         sat_vels = hal.prop(vel3d_str)[hal_mask]
-        proj_vels = []
+        los_vels = []
         for n in range(n_iter):
             sat_vels_rot = ut.basic.coordinate.get_coordinates_rotated(sat_vels, rotation_tensor=rot_vecs[n])
-            proj_v = np.sqrt(sat_vels_rot[:,1]**2 + sat_vels_rot[:,2]**2)
-            proj_vels.append(proj_v)
-        return proj_2d_dist, proj_vels
+            los_v = sat_vels_rot[:,0]
+            los_vels.append(los_v)
+        return proj_2d_dist, los_vels
     else:
         return proj_2d_dist
 
