@@ -1411,10 +1411,13 @@ def loop_hal(sat, mask_key, exec_func, **kwargs):
         stores the output of exec_func for each simulation and snapshot in sat
     '''
     loop_dict = defaultdict(list)
-    if type(sat.snapshot) == int:
-        snap_list = [sat.snapshot]
-    else:
+    if sat.snapshots_to_mask is None:
         snap_list = sat.snapshot
+    else:
+        snap_list = sat.snapshots_to_mask
+    if type(snap_list) == int:
+        snap_list = [snap_list]
+
     if sat.sat_type == 'tree':
         for host_name in sat.tree.keys():
             for redshift_index in range(len(snap_list)):

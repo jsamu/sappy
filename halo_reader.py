@@ -19,7 +19,7 @@ class SatParam(object):
     snapshot = 600
     redshift = [0]
     time = 13.8
-    snapshot_to_mask = 600
+    snapshot_to_mask = None
 
     # radial bins to use for plotting/calculations
     r_width = 10
