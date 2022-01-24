@@ -707,7 +707,7 @@ def mask_tree(sat):
         # check for iterable, if not make iterable
         # (load hals needs a non-iterable, need to fix this inconsistency in a better way)
         # also exits in loop hal
-        snapshot_ = sat.snapshot
+        snapshot_ = sat.snapshots_to_mask
         if type(snapshot_) is int:
             snapshot_ = [snapshot_]
         for snap in snapshot_:
@@ -949,7 +949,7 @@ def mask_tree_lg(sat):
             # check for iterable, if not make iterable
             # (load hals needs a non-iterable, need to fix this inconsistency in a better way)
             # also exits in loop hal
-            snapshot_ = sat.snapshot
+            snapshot_ = sat.snapshots_to_mask
             if type(snapshot_) is int:
                 snapshot_ = [snapshot_]
             for snap in snapshot_:
@@ -1190,10 +1190,14 @@ def mask_tree_dmo(sat):
     """
     tree_mask_dict = {}
     for host_key in sat.tree.keys():
-        for i, redshift in enumerate(sat.redshift):
+        #for i, redshift in enumerate(sat.redshift):
+        snapshot_ = sat.snapshots_to_mask
+        if type(snapshot_) is int:
+            snapshot_ = [snapshot_]
+        for i,snap in enumerate(snapshot_):
             # look at a single snapshot/redshift
-            redshift_snap_id = sat.tree[host_key].Snapshot.get_snapshot_indices('redshift', redshift)
-            redshift_mask = sat.tree[host_key]['snapshot'] == redshift_snap_id
+            #redshift_snap_id = sat.tree[host_key].Snapshot.get_snapshot_indices('redshift', redshift)
+            redshift_mask = sat.tree[host_key]['snapshot'] == snap
 
             # systematically exclude the host/main halo
             host_mask = ~(sat.tree[host_key]['host.index'] == np.arange(len(sat.tree[host_key]['host.index'])))

@@ -19,6 +19,7 @@ class SatParam(object):
     snapshot = 600
     redshift = [0]
     time = 13.8
+    snapshot_to_mask = 600
 
     # radial bins to use for plotting/calculations
     r_width = 10
@@ -50,6 +51,29 @@ class SatParam(object):
     d_complete = [150, 300]
     sm_complete = [1e5, 1e7]
 
+    def get_time_table(self, time_dict=None, time_info_file_path_=None, redshift_limits_=None):
+        # get snapshot info from keywords if provided, if not get from a table
+        # or use z=0 defaults
+        # time dict comes from sat tree properties
+        # time_dict = {'snapshot':snapshot_indices, 'redshift':redshift_list, 'time':time_list}
+        time_table = None
+        if time_info_file_path_ is not None:
+            time_table = pd.read_csv(time_info_file_path_, sep=' ')
+        for time_key in time_dict.keys():
+            if time_dict[time_key] is not None:
+                exec("self.{} = {}".format(time_key, list(time_dict[time_key])))
+            elif time_table is not None:
+                if redshift_limits_ is not None:
+                    z_mask = np.array(
+                        (np.array(time_table['redshift'].values) >= redshift_limits_[0]) & 
+                        (np.array(time_table['redshift'].values) <= redshift_limits_[1])
+                        )
+                else:
+                    z_mask = np.ones(len(time_table['redshift'].values), dtype='bool')
+                exec("self.{} = {}".format(time_key, list(time_table[time_key].values[z_mask])))
+            else:
+                print("No {} information provided, defaulting to z=0 snapshot.".format(time_key))
+
 class SatelliteTree(SatParam):
     """
     Load and collect halo catalogs for different host halos for a range of
@@ -63,9 +87,10 @@ class SatelliteTree(SatParam):
         self, directory_list, redshift_list=None, host_name_list=None,
         mask_names=None, prop_subset=None, dmo=False, dmo_baryon_compare=None,
         host_number=1, star_mass_limit=None, radius_limit=None,
-        radius_limits=None, radius_bin_width=None, snapshot_indices=None,
+        radius_limits=None, radius_bin_width=None, 
+        snapshots_to_load=None, snapshots_to_mask=None,
         observation_dir=None, vel_circ_max_lim=None, mass_bound=None,
-        v_peak=None, mass_peak=None, assign_species=True, isotropic=False,
+        v_peak=None, mass_peak=None, assign_species=True,
         number_sats=None, time_list=None, time_info_file_path=None,
         redshift_limits=None, lmc_index=None, bound_fraction=None,
         star_density=None):
@@ -118,6 +143,18 @@ class SatelliteTree(SatParam):
 
         # get snapshot info from keywords if provided, if not get from a table
         # or use z=0 defaults
+        self.get_time_table(
+            time_dict={'snapshot':snapshots_to_load, 'redshift':redshift_list, 'time':time_list},
+            time_info_file_path_=time_info_file_path,
+            redshift_limits_=redshift_limits
+        )
+
+        # set which snapshots to mask on, if different from snapshots to load
+        if snapshots_to_mask is not None:
+            self.snapshots_to_mask = snapshots_to_mask
+        else:
+            self.snapshots_to_mask = self.snapshot
+        '''
         time_table = None
         if time_info_file_path is not None:
             time_table = pd.read_csv(time_info_file_path, sep=' ')
@@ -137,6 +174,7 @@ class SatelliteTree(SatParam):
             else:
                 print("No {} information provided, defaulting to z=0 snapshot.".format(time_key))
         del(time_table)
+        '''
 
         if vel_circ_max_lim:
             self.vel_circ_max = vel_circ_max_lim
@@ -192,9 +230,7 @@ class SatelliteTree(SatParam):
                 self.num_sats = spa.total_sats(self, dmo_baryon_compare, mask_key='star.mass', radius=self.r_range[1])
                 self.med_v_circ = kin.med_velcircmax_z0(dmo_baryon_compare, mask_key='star.number')
             self.tree_mask = sio.mask_tree_dmo(self)
-            # generate isotropic distributions
-            #self.isotropic = sio.tree_iso(self, mask_names)
-
+            
         # Local Group functionality
         elif host_number > 1:
             self.sat_type = 'tree.lg'
@@ -203,9 +239,6 @@ class SatelliteTree(SatParam):
         else:
             # generate baryonic masks
             self.tree_mask = sio.mask_tree(self)
-            # generate isotropic distributions
-            if isotropic:
-                self.isotropic = sio.tree_iso(self, mask_names)
 
         # observational data
         if observation_dir:
