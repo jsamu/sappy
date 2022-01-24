@@ -1,8 +1,0 @@
-{
-    "git.ignoreLimitWarning": true,
-    "python.linting.pylintEnabled": true,
-    "python.linting.enabled": true,
-    "python.formatting.provider": "black",
-    "python.pythonPath": "/Users/jsamuel/anaconda3/bin/python",
-    "jupyter.jupyterServerType": "local"
-}
