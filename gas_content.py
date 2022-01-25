@@ -157,7 +157,7 @@ class GalaxyGas():
                 total_distance=True) < velocity_limit_
             return np.where(pos_mask & vel_mask)[0]
 
-        if len(sat_position) == 3:
+        if sat_position.size == 3:
             # if only one subhalo, make these quantities iterable
             sat_position = np.array([sat_position])
             sat_velocity = np.array([sat_velocity])
