@@ -1,6 +1,21 @@
 import numpy as np
 import math
+from scipy import stats
 
+
+def beta_error(numers, denoms):
+    # taken from AW's LG QF code
+    conf_inter = 0.683  # 1 - sigma
+    p_lo = numers / denoms - stats.distributions.beta.ppf(
+        0.5 * (1 - conf_inter), numers + 1, denoms - numers + 1
+    )
+    p_hi = (
+        stats.distributions.beta.ppf(
+            1 - 0.5 * (1 - conf_inter), numers + 1, denoms - numers + 1
+        )
+        - numers / denoms
+    )
+    return np.array([p_lo, p_hi]).clip(0)
 
 def round_up(x, base=5):
     '''
