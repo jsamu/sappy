@@ -3,6 +3,25 @@ import math
 from scipy import stats
 
 
+def qf_stats(qf, mstar_bins=np.array([1e5, 1e6, 1e7, 1e8, 1e9]), percentile_limits=[16,84], name=''):
+    std_ = np.nanstd(qf, axis=0)
+    # eliminate values of scatter that are plotted outside [0,1]
+    std = np.where(
+        np.nanmean(qf, axis=0)+std_ > 1, 1-np.nanmean(qf, axis=0), std_)
+    std = np.where(
+        np.nanmean(qf, axis=0)-std_ < 0, np.nanmean(qf, axis=0), std)
+    return {
+        'name':np.full(np.nanmean(qf, axis=0).shape, name),
+        'left.star.mass.bin':mstar_bins,
+        'mean':np.nanmean(qf, axis=0),
+        'median':np.nanmedian(qf, axis=0),
+        'min':np.nanmin(qf, axis=0),
+        'max':np.nanmax(qf, axis=0),
+        'std':std,
+        '16_percentile':np.nanpercentile(qf, percentile_limits[0], axis=0),
+        '84_percentile':np.nanpercentile(qf, percentile_limits[1], axis=0)
+        }
+
 def beta_error(numers, denoms):
     # taken from AW's LG QF code
     conf_inter = 0.683  # 1 - sigma
