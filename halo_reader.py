@@ -149,7 +149,7 @@ class SatelliteTree(SatParam):
             redshift_limits_=redshift_limits
         )
 
-        # set which snapshots to mask on, if different from snapshots to load
+        # set which snapshots to mask on, if different from snapshots_to_load
         if snapshots_to_mask is not None:
             self.snapshots_to_mask = snapshots_to_mask
         else:
