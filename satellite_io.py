@@ -1819,6 +1819,8 @@ def get_galaxies_history(
     # same as above, but for 3D distance
     central_mask_3d = np.reshape(np.dstack([central_mask, central_mask, central_mask]), np.array(tracked_ids).shape + (3,))
     nan_central_3d = np.full(np.array(tracked_ids).shape + (3,), np.nan)
+    central_position = np.where(central_mask_3d, hal['position'][central_ind], nan_central_3d)
+    central_velocity = np.where(central_mask_3d, hal['velocity'][central_ind], nan_central_3d)
     central_host_distance = np.where(central_mask_3d, hal[host_str+'distance'][central_ind], nan_central_3d)
 
     # get the total number of subhalos in each group, cutting on sm and hm
@@ -1846,6 +1848,8 @@ def get_galaxies_history(
         'central.index':np.array(hal['central.index'][tracked_ids]),
         'central.mass':central_mass,
         'central.star.mass':central_star_mass,
+        'central.position':central_position,
+        'central.velocity':central_velocity,
         'central.host.distance':central_host_distance,
         'central.host.distance.total':central_host_distance_total,
         'central.group.size':central_group_size,
