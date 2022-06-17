@@ -36,9 +36,9 @@ def qf_stats(qf, mstar_bins=np.array([1e5, 1e6, 1e7, 1e8, 1e9]), percentile_limi
         '84_percentile':np.nanpercentile(qf, percentile_limits[1], axis=0)
         }
 
-def beta_error(numers, denoms):
+def beta_error(numers, denoms, conf_inter=0.683):
     # taken from AW's LG QF code
-    conf_inter = 0.683  # 1 - sigma
+    #conf_inter = 0.683  # 1 - sigma
     p_lo = numers / denoms - stats.distributions.beta.ppf(
         0.5 * (1 - conf_inter), numers + 1, denoms - numers + 1
     )

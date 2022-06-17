@@ -1607,9 +1607,9 @@ def snapshot_loop_lg(exec_func, sat, host_name, mask_key, pair_name, host_str, s
     return px
 
 
-########################
-### helper functions ###
-########################
+########################################
+### halo tracking & helper functions ###
+########################################
 
 def single_property_dict(sat_dict, dict_key):
     '''
@@ -1787,6 +1787,83 @@ def optim_track(track_ids, progenitor_inds):
     progenitor_inds[negative_ids] = track_ids[negative_ids]
 
     return progenitor_inds
+
+def get_galaxies_history(
+    hal, hal_mask, host_str='host.', snapshot_limits=[1,600]):
+    # hal_mask should be for a selection of satellites at a single snapshot
+    initial_snapshot = hal['snapshot'][hal_mask][0]
+    all_snapshots = np.arange(snapshot_limits[0], initial_snapshot+1, 1)
+    initial_ids = np.where(hal_mask)[0]# these are indices NOT tree id's
+
+    # track the selection of satellites from z=0 all the way back to z=99, and
+    # return their tree indices at all snapshots
+    tracked_ids = halo_track(hal, initial_ids, snapshot_list=all_snapshots)
+
+    # also track the main MW-like host galaxy and return its tree indices at all
+    # snapshots
+    host_ind = np.array([hal[host_str+'index'][hal_mask][0]])
+    host_track_ = halo_track(hal, host_ind, snapshot_list=all_snapshots)
+    host_track = np.array([track[0] for track in host_track_], dtype='int32')
+
+    # get the central index for each tracked satellite at all snapshots
+    central_mask = np.array(hal['central.index'][tracked_ids]) >= 0
+    central_ind = np.where(central_mask, np.array(hal['central.index'][tracked_ids]), np.full(np.array(hal['central.index'][tracked_ids]).shape, -1))
+    
+    # find the distance of the central from the main MW-like host galaxy, where
+    # the central is lost/doesn't exist, use a nan
+    nan_central = np.full(np.array(tracked_ids).shape, np.nan)
+    central_mass = np.where(central_mask, hal['mass'][central_ind], nan_central)
+    central_star_mass = np.where(central_mask, hal['star.mass'][central_ind], nan_central)
+    central_host_distance_total = np.where(central_mask, hal.prop(host_str+'distance.total')[central_ind], nan_central)
+
+    # same as above, but for 3D distance
+    central_mask_3d = np.reshape(np.dstack([central_mask, central_mask, central_mask]), np.array(tracked_ids).shape + (3,))
+    nan_central_3d = np.full(np.array(tracked_ids).shape + (3,), np.nan)
+    central_host_distance = np.where(central_mask_3d, hal[host_str+'distance'][central_ind], nan_central_3d)
+
+    # get the total number of subhalos in each group, cutting on sm and hm
+    central_mass_mask = hal['mass'] > 1e7
+    central_group_size = np.full(np.array(tracked_ids).size, np.nan)
+    hci = hal['central.index']
+    central_ind_ = np.where(central_mask, np.array(hal['central.index'][tracked_ids]), np.full(np.array(hal['central.index'][tracked_ids]).shape, np.nan))
+    for i,tracked_central_ind in enumerate(np.ndarray.flatten(central_ind_)):
+        central_group_size[i] = sum_central(hci, tracked_central_ind, central_mass_mask)
+    central_group_size = np.reshape(central_group_size, np.array(tracked_ids).shape)
+
+    # organize into a dictionary for output
+    galaxies_history = {
+        'snapshot':np.arange(0,snapshot_limits[1]+1,1),
+        'tree.index':tracked_ids,
+        'mass':np.array(hal['mass'][tracked_ids]),
+        'position':hal['position'][tracked_ids],
+        'velocity':hal['velocity'][tracked_ids],
+        'radius':hal['radius'][tracked_ids],
+        'vel.circ.max':hal.prop('vel.circ.max')[tracked_ids],
+        'vel.std':hal.prop('vel.std')[tracked_ids],
+        'star.mass':np.array(hal['star.mass'][tracked_ids]),
+        'star.radius.50':np.array(hal['star.radius.50'][tracked_ids]),
+        'star.vel.std.50':np.array(hal['star.vel.std.50'][tracked_ids]),
+        'central.index':np.array(hal['central.index'][tracked_ids]),
+        'central.mass':central_mass,
+        'central.star.mass':central_star_mass,
+        'central.host.distance':central_host_distance,
+        'central.host.distance.total':central_host_distance_total,
+        'central.group.size':central_group_size,
+        'host.distance':np.array(hal[host_str+'distance'][tracked_ids]),
+        'host.distance.total':np.array(hal.prop(host_str+'distance.total')[tracked_ids]),
+        'host.velocity':np.array(hal[host_str+'velocity'][tracked_ids]),
+        'main.host.index':host_track,
+        'main.host.mass':np.array(hal['mass'][host_track]),
+        'main.host.radius':np.array(hal['radius'][host_track]),
+        'main.host.scale.radius':np.array(hal['scale.radius'][host_track]),
+        'main.host.star.mass':np.array(hal['star.mass'][host_track])
+    }
+
+    return galaxies_history
+
+@jit(nopython=True)
+def sum_central(hal_central_index, y, central_mass_mask_):
+    return np.sum((hal_central_index == y) & central_mass_mask_)
 
 def group_assoc(hal, hal_mask, host_str='host.'):
     # see if subhalos have past group associations
