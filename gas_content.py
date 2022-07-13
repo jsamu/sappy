@@ -69,7 +69,7 @@ class GalaxyGas():
                 vel_factor=vel_factor, sat_position=sat_position, 
                 sat_velocity=sat_velocity, sat_rad=sat_rad, 
                 sat_vel_max=sat_vel_max, sat_vel_std=sat_vel_std
-            )            
+            )
         self.gas_props = None
 
     def get_gas_props(self, gas_particle_data):
@@ -79,6 +79,7 @@ class GalaxyGas():
         assert self.sat_gas_ind is not None
         gas_props = {
             'gas.mass.total':self.total_gas_mass(gas_particle_data),
+            'gas.surface.density':self.gas_surface_density(gas_particle_data),
             'hydrogen.mass.total':self.total_hydrogen_mass(gas_particle_data),
             'neutral.hydrogen.mass':self.neutral_hydrogen_mass(gas_particle_data)
         }
@@ -135,6 +136,7 @@ class GalaxyGas():
             # store all gas particle distances and velocities in new variables
             gas_particle_pos = gas_particle_data.prop('host.distance')
             gas_particle_vel = gas_particle_data.prop('host.velocity')
+
         else:
             # store all gas particle distances and velocities in new variables
             gas_particle_pos = gas_particle_data['position']
@@ -143,6 +145,8 @@ class GalaxyGas():
         # define distance and velocity cutoffs
         radius_limit = radius_factor*sat_rad
         velocity_limit = vel_factor*np.max((sat_vel_std, sat_vel_max), axis=0)
+
+        self.gas_radius = radius_limit
 
 
         def find_indices(
@@ -196,6 +200,17 @@ class GalaxyGas():
             sat_gas_masses.append(np.sum(gas_particle_data['mass'][sat]))
         return np.array(sat_gas_masses)
 
+    def gas_surface_density(self, gas_particle_data):
+        """
+        Get a broad measure of gas surface density within a subhalo(s).
+        """
+        sat_gas_surface_density = []
+        for sat in self.sat_gas_ind:
+            mass_ = np.sum(gas_particle_data['mass'][sat])
+            surface_area = np.pi*self.gas_radius**2
+            sat_gas_surface_density.append(mass_/surface_area)
+        return np.array(sat_gas_surface_density)
+
     def gas_mass_by_temp(self, gas_particle_data, low_temp=1e4, high_temp=1e5):
         """
         Separate subhalo(s) gas mass by temperature.
@@ -239,11 +254,14 @@ class GalaxyGas():
         """
         sat_gas_avg_temp = []
         sat_gas_avg_density = []
+        sat_gas_avg_metallicity = []
         for sat in self.sat_gas_ind:
             sat_gas_avg_temp.append(np.nanmean(gas_particle_data['temperature'][sat]))
             sat_gas_avg_density.append(np.nanmean(gas_particle_data['density'][sat]))
+            sat_gas_avg_metallicity.append(np.nanmean(gas_particle_data.prop('metallicity.metals')[sat]))
         return {
             'avg.gas.density':np.array(sat_gas_avg_density),
-            'avg.gas.temperature':np.array(sat_gas_avg_temp)
+            'avg.gas.temperature':np.array(sat_gas_avg_temp),
+            'avg.gas.metallicity':np.array(sat_gas_avg_metallicity)
         }
     
