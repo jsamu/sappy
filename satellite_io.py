@@ -1902,15 +1902,15 @@ def convert_snapshot_to_time(
     if type(snapshot) == int:
         snapshot_mask = time_table[pre_convert_type] == snapshot
         converted_time = time_table[time_kind][snapshot_mask].values[0]
+        return converted_time
     elif (type(snapshot) == list )|(type(snapshot) == np.ndarray):
         converted_time = []
         for snap in snapshot:
             snapshot_mask = time_table[pre_convert_type] == snap
             converted_time.append(time_table[time_kind][snapshot_mask].values[0])
+        return np.array(converted_time)
     else:
         raise ValueError('Data type of input snapshot not recognized. Must be int or list/array.')
-        
-    return converted_time
 
 def color_cycle(cycle_length=14, cmap_name='plasma', low=0, high=1):
     cmap=plt.get_cmap(cmap_name)

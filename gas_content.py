@@ -205,9 +205,9 @@ class GalaxyGas():
         Get a broad measure of gas surface density within a subhalo(s).
         """
         sat_gas_surface_density = []
-        for sat in self.sat_gas_ind:
+        for sat, gas_rad in zip(self.sat_gas_ind, self.gas_radius):
             mass_ = np.sum(gas_particle_data['mass'][sat])
-            surface_area = np.pi*self.gas_radius**2
+            surface_area = np.pi*self.gas_rad**2
             sat_gas_surface_density.append(mass_/surface_area)
         return np.array(sat_gas_surface_density)
 
