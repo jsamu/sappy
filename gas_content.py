@@ -207,7 +207,7 @@ class GalaxyGas():
         sat_gas_surface_density = []
         for sat, gas_rad in zip(self.sat_gas_ind, self.gas_radius):
             mass_ = np.sum(gas_particle_data['mass'][sat])
-            surface_area = np.pi*self.gas_rad**2
+            surface_area = np.pi*gas_rad**2
             sat_gas_surface_density.append(mass_/surface_area)
         return np.array(sat_gas_surface_density)
 
