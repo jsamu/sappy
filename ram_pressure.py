@@ -113,7 +113,7 @@ def localized_ram_pressure(
 
     # use a simple spherical distance from the cylinder center to determine gas integration
     max_cyl_dimension = np.max([cyl_height/2, cyl_radius])
-    gas_distance_to_cyl = np.linalg.norm(gas_coords_shifted, axis=0)
+    gas_distance_to_cyl = np.linalg.norm(gas_coords_shifted, axis=1)
 
     # if the gas cell center is within the cylinder, just use its mass
     in_cyl_mask = gas_distance_to_cyl < max_cyl_dimension
@@ -121,7 +121,7 @@ def localized_ram_pressure(
     
     # if the gas cell partially overlaps the cylinder, weight the integral 
     # according to the approximate solid angle subtended by the cylinder
-    overlap_mask = gas_distance_to_cyl < gas_size + max_cyl_dimension
+    overlap_mask = (gas_distance_to_cyl < gas_size + max_cyl_dimension) & ~in_cyl_mask
     vector_integrate_kernel = np.vectorize(integrate_kernel)
     inner_int_limit = gas_distance_to_cyl - max_cyl_dimension
 
