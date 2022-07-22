@@ -146,9 +146,6 @@ class GalaxyGas():
         radius_limit = radius_factor*sat_rad
         velocity_limit = vel_factor*np.max((sat_vel_std, sat_vel_max), axis=0)
 
-        self.gas_radius = radius_limit
-
-
         def find_indices(
             sat_position_, gas_positions_, radius_limit_, sat_velocity_, 
             gas_velocities_, velocity_limit_):
@@ -167,6 +164,9 @@ class GalaxyGas():
             sat_velocity = np.array([sat_velocity])
             radius_limit = np.array([radius_limit])
             velocity_limit = np.array([velocity_limit])
+            self.gas_radius = np.array([radius_limit])
+        else:
+            self.gas_radius = radius_limit
 
         # set up empty list to save assigned gas particle indices
         sat_gas_indices = []
