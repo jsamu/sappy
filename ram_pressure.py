@@ -25,7 +25,7 @@ def integrate_kernel(
     if int_upper_limit is not None:
         q2 = int_upper_limit/h_i
     else:
-        q2 =1.0
+        q2 = 1.0
 
     # set defaults
     small_q_integral = 0
@@ -133,7 +133,7 @@ def localized_ram_pressure(
 
     # multiply normalized integral by gas cell mass
     mass_cell_overlap *= gas_mass[overlap_mask]
-    cyl_gas_mass = mass_center_within + mass_cell_overlap
+    cyl_gas_mass = np.sum(mass_center_within + mass_cell_overlap)
 
     # CONVERT TO NUMBER DENSITY ASSUMING HYDROGEN COMPOSITION
     cyl_volume = np.pi*cyl_height*cyl_radius**2
@@ -148,7 +148,7 @@ def localized_ram_pressure(
     cylinder_velocity = particle_data['gas']['velocity'][new_mask]
     cylinder_velocity_rotated = ut.basic.coordinate.get_coordinates_rotated(
         cylinder_velocity, rotation_tensor=rot_matrix)
-    cylinder_velocity_wrt_sat = cylinder_velocity_rotated[:,2] - sat_vel_rotated[2]
+    cylinder_velocity_wrt_sat = np.abs(cylinder_velocity_rotated[:,2] - sat_vel_rotated[2])
 
     # save cylinder parameters, densities, and velocities in a dictionary
     cylinder_dict = {
