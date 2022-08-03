@@ -1,3 +1,4 @@
+import pickle
 import numpy as np
 import pandas as pd
 from sappy import halo_reader as hr
@@ -87,3 +88,10 @@ for host in m12_sat_props.keys():
     sat_props_df.to_csv(host+'_galaxy_properties.txt', sep=' ', index=False)
 
 print(sat_props_df)
+
+# use another function to track the selected galaxies' properties over time
+m12_galaxies_history = sio.loop_hal(m12_st, 'star.mass', sio.get_galaxies_history)
+
+f0 = open('m12_galaxies_history_2Mpc.pkl', 'wb')
+pickle.dump(m12_galaxies_history, f0, -1)
+f0.close()
