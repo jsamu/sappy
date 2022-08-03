@@ -84,6 +84,6 @@ for host in m12_sat_props.keys():
         'star.form.time.100':np.array(m12_sat_props[host][0]['star.form.time.100'])
         })
     sat_props_df = pd.DataFrame(x)
-    sat_props_df.to_csv('properties.txt', sep=' ', index=False)
+    sat_props_df.to_csv(host+'_galaxy_properties.txt', sep=' ', index=False)
 
 print(sat_props_df)
