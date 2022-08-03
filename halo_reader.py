@@ -86,8 +86,8 @@ class SatelliteTree(SatParam):
     def __init__(
         self, directory_list, redshift_list=None, host_name_list=None,
         mask_names=None, prop_subset=None, dmo=False, dmo_baryon_compare=None,
-        host_number=1, star_mass_limit=None, radius_limit=None,
-        radius_limits=None, radius_bin_width=None, 
+        host_number=1, star_mass_limit=None, star_mass_limits=None,
+        radius_limit=None, radius_limits=None, radius_bin_width=None, 
         snapshots_to_load=None, snapshots_to_mask=None,
         observation_dir=None, vel_circ_max_lim=None, mass_bound=None,
         v_peak=None, mass_peak=None, assign_species=True,
@@ -190,6 +190,9 @@ class SatelliteTree(SatParam):
 
         if star_mass_limit:
             self.star_mass = [star_mass_limit, 1e10]
+
+        if star_mass_limits:
+            self.star_mass = star_mass_limits
 
         if radius_bin_width:
             self.r_width = radius_bin_width
