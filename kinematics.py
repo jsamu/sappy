@@ -1,9 +1,8 @@
 import numpy as np
-from numba import jit
 import utilities as ut
-from satellite_analysis import satellite_io as sio
-from satellite_analysis import spatial as spa
-from satellite_analysis import rand_axes as ra
+from sappy import satellite_io as sio
+from sappy import spatial as spa
+from sappy import rand_axes as ra
 
 
 def v_peak(hal, hal_mask=None, host_str='host.', hal_property='vel.circ.max', return_snap=False):
@@ -76,7 +75,6 @@ def project_internal_ang_momentum(hal, hal_mask=None):
 
     return aligned_ang_momentum
 
-#@jit
 def orbital_ang_momentum(hal, hal_mask=None, host_str='host.', norm=False):
     '''
     Compute mass-agnostic orbital angular momentum as L=(v)x(r) where the
@@ -92,7 +90,6 @@ def orbital_ang_momentum(hal, hal_mask=None, host_str='host.', norm=False):
 
     return ang_momentum
 
-#@jit
 def orbital_pole_dispersion(hal, hal_mask=None, host_str='host.', return_pole=True):
     '''
     Calculate the angular dispersion [deg] of satellite orbital poles around

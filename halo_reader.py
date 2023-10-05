@@ -2,12 +2,10 @@ import pickle
 import numpy as np
 import pandas as pd
 import utilities as ut
-from satellite_analysis import satellite_io as sio
-from satellite_analysis import spatial as spa
-from satellite_analysis import kinematics as kin
-from satellite_analysis import isotropic as iso
-from satellite_analysis import observation as obs
-from satellite_analysis import rand_axes as ra
+from sappy import satellite_io as sio
+from sappy import spatial as spa
+from sappy import kinematics as kin
+from sappy import observation as obs
 
 
 class SatParam(object):

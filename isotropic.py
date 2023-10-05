@@ -1,9 +1,9 @@
 import numpy as np
 from numba import jit
 import utilities as ut
-from satellite_analysis import spatial as spa
-from satellite_analysis import math_funcs as mf
-from satellite_analysis import rand_axes as ra
+from sappy import spatial as spa
+from sappy import math_funcs as mf
+from sappy import rand_axes as ra
 
 
 def iso_distribution(hal, hal_mask=None, host_str='host.', n_iter=1000):

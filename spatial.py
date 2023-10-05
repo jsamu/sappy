@@ -2,12 +2,12 @@ import numpy as np
 from scipy import stats
 from numba import jit
 import utilities as ut
-from satellite_analysis import satellite_io as sio
-from satellite_analysis import isotropic as iso
-from satellite_analysis import angular as ang
-from satellite_analysis import math_funcs as mf
-from satellite_analysis import observation as obs
-from satellite_analysis import rand_axes as ra
+from sappy import satellite_io as sio
+from sappy import isotropic as iso
+from sappy import angular as ang
+from sappy import math_funcs as mf
+from sappy import observation as obs
+from sappy import rand_axes as ra
 
 def ks_test_distance(
     hal, hal_mask=None, host_str='host.', sig_lvl=95, n_samp=1000, 

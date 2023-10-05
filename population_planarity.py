@@ -1,4 +1,3 @@
-import os
 import itertools
 from collections import defaultdict
 import numpy as np
@@ -9,7 +8,7 @@ import scipy.integrate
 from scipy.stats import spearmanr
 from scipy.stats import gaussian_kde
 from scipy.ndimage import gaussian_filter1d
-import satellite_analysis as sa
+import sappy as sa
 
 
 ########################

@@ -6,9 +6,8 @@ import math
 import utilities as ut
 import halo_analysis as halo
 from collections import defaultdict
-from satellite_analysis import isotropic as iso
-from satellite_analysis import observation as obs
-from satellite_analysis import kinematics as kin
+from sappy import isotropic as iso
+from sappy import kinematics as kin
 
 ###########################################
 ### load halo catalogs and merger trees ###

@@ -1,10 +1,9 @@
 import numpy as np
 from numba import jit
 import utilities as ut
-from satellite_analysis import spatial as spa
-from satellite_analysis import angular as ang
-from satellite_analysis import m31_like_planes as m31
-from satellite_analysis import kinematics as kin
+from sappy import spatial as spa
+from sappy import m31_like_planes as m31
+from sappy import kinematics as kin
 
 @jit
 def rand_rot_vec(n_iter):
